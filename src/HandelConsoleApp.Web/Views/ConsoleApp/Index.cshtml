@@ -1,0 +1,76 @@
+@model HandelConsoleApp.Web.Models.ConsoleAppStatusViewModel
+@{
+    ViewData["Title"] = "Console App Control";
+}
+
+<div class="container mt-4">
+    <h2>Console App Remote Control</h2>
+    <hr />
+
+    @if (Model.ResultMessage is not null)
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            @Model.ResultMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">Status</div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-4">Agent Connection</dt>
+                <dd class="col-sm-8">
+                    @if (Model.IsConnectedToAgent)
+                    {
+                        <span class="badge bg-success">Connected</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Disconnected</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-4">Process</dt>
+                <dd class="col-sm-8">
+                    @if (Model.IsRunning)
+                    {
+                        <span class="badge bg-success">Running</span>
+                        @if (Model.ProcessId.HasValue)
+                        {
+                            <span class="ms-2 text-muted">PID @Model.ProcessId</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Stopped</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-4">Last Message</dt>
+                <dd class="col-sm-8">@Model.LastMessage</dd>
+
+                <dt class="col-sm-4">Requested By</dt>
+                <dd class="col-sm-8">@Model.RequestedBy</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <form asp-action="Start" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-success"
+                    @(Model.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
+                Start
+            </button>
+        </form>
+
+        <form asp-action="Stop" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-danger"
+                    @(!Model.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
+                Stop
+            </button>
+        </form>
+    </div>
+</div>
