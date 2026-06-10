@@ -96,6 +96,17 @@ public sealed class ConsoleAppController(
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpGet("/ConsoleApp/StatusJson")]
+    public async Task<IActionResult> StatusJson(CancellationToken ct)
+    {
+        var response = await SendSafeAsync(new AgentCommand { Command = CommandType.ListInstances }, ct);
+        return Json(new
+        {
+            connected = agentService.IsConnected,
+            instances = response?.Instances ?? []
+        });
+    }
+
     private async Task<AgentResponse?> SendSafeAsync(AgentCommand cmd, CancellationToken ct)
     {
         try

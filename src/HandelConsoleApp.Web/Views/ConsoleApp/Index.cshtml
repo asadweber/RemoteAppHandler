@@ -14,7 +14,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>App Instances</h2>
-        <span class="badge @(Model.IsConnectedToAgent ? "bg-success" : "bg-danger") fs-6">
+        <span id="agent-badge" class="badge @(Model.IsConnectedToAgent ? "bg-success" : "bg-danger") fs-6">
             Agent: @(Model.IsConnectedToAgent ? "Connected" : "Disconnected")
         </span>
     </div>
@@ -30,7 +30,7 @@
     <div class="mb-3">
         <form asp-action="Create" method="post" data-action-label="Creating new instance…">
             @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-primary"
+            <button id="btn-create" type="submit" class="btn btn-primary"
                     @(!Model.IsConnectedToAgent ? "disabled" : "")>
                 + Add New Instance
             </button>
@@ -53,11 +53,11 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="instances-tbody">
                 @foreach (var inst in Model.Instances)
                 {
                     var num = inst.InstanceName.Split('-').LastOrDefault();
-                    <tr>
+                    <tr data-instance="@inst.InstanceName" data-is-default="@inst.IsDefault.ToString().ToLower()">
                         <td>
                             <strong>@inst.InstanceName</strong>
                             @if (inst.IsDefault)
@@ -66,7 +66,7 @@
                             }
                         </td>
                         <td><code>@inst.FolderPath</code></td>
-                        <td>
+                        <td data-status>
                             @if (inst.IsRunning)
                             {
                                 <span class="badge bg-success">Running</span>
@@ -76,12 +76,12 @@
                                 <span class="badge bg-secondary">Stopped</span>
                             }
                         </td>
-                        <td>@(inst.ProcessId?.ToString() ?? "-")</td>
+                        <td data-pid>@(inst.ProcessId?.ToString() ?? "-")</td>
                         <td class="d-flex gap-1">
                             <form asp-action="Start" asp-route-name="@inst.InstanceName" method="post"
                                   data-action-label="Starting @inst.InstanceName…">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-success"
+                                <button type="submit" class="btn btn-sm btn-success" data-btn="start"
                                         @(inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
                                     Start
                                 </button>
@@ -89,7 +89,7 @@
                             <form asp-action="Stop" asp-route-name="@inst.InstanceName" method="post"
                                   data-action-label="Stopping @inst.InstanceName…">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-warning"
+                                <button type="submit" class="btn btn-sm btn-warning" data-btn="stop"
                                         @(!inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
                                     Stop
                                 </button>
@@ -98,7 +98,7 @@
                                   data-action-label="Deleting @inst.InstanceName…"
                                   data-confirm="Delete @inst.InstanceName?">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-danger"
+                                <button type="submit" class="btn btn-sm btn-danger" data-btn="delete"
                                         @(inst.IsDefault || inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
                                     Delete
                                 </button>
@@ -114,10 +114,14 @@
 @section Scripts {
 <script>
 (function () {
-    var overlay = document.getElementById('action-overlay');
-    var label   = document.getElementById('overlay-label');
+    var overlay   = document.getElementById('action-overlay');
+    var label     = document.getElementById('overlay-label');
+    var busy      = false;   // true while a form submission is in flight
+    var INTERVAL  = 5000;    // poll every 5 seconds
 
+    // ── Overlay & form wiring ────────────────────────────────────────────
     function showOverlay(message) {
+        busy = true;
         label.textContent = message;
         overlay.style.display = 'flex';
         document.querySelectorAll('button[type="submit"]').forEach(function (b) { b.disabled = true; });
@@ -126,15 +130,69 @@
     document.querySelectorAll('form[data-action-label]').forEach(function (form) {
         form.addEventListener('submit', function (e) {
             var confirmMsg = form.dataset.confirm;
-            if (confirmMsg) {
-                if (!confirm(confirmMsg)) {
-                    e.preventDefault();
-                    return;
-                }
+            if (confirmMsg && !confirm(confirmMsg)) {
+                e.preventDefault();
+                return;
             }
             showOverlay(form.dataset.actionLabel);
         });
     });
+
+    // ── Live status polling ──────────────────────────────────────────────
+    function updateRow(inst, connected) {
+        var row = document.querySelector('tr[data-instance="' + inst.instanceName + '"]');
+        if (!row) return;
+
+        var isDefault = row.dataset.isDefault === 'true';
+
+        // Status badge
+        var statusCell = row.querySelector('[data-status]');
+        if (statusCell) {
+            var badge = statusCell.querySelector('.badge') || document.createElement('span');
+            badge.className   = inst.isRunning ? 'badge bg-success' : 'badge bg-secondary';
+            badge.textContent = inst.isRunning ? 'Running' : 'Stopped';
+            if (!statusCell.contains(badge)) statusCell.appendChild(badge);
+        }
+
+        // PID
+        var pidCell = row.querySelector('[data-pid]');
+        if (pidCell) pidCell.textContent = inst.processId != null ? inst.processId : '-';
+
+        // Buttons
+        var btnStart  = row.querySelector('[data-btn="start"]');
+        var btnStop   = row.querySelector('[data-btn="stop"]');
+        var btnDelete = row.querySelector('[data-btn="delete"]');
+
+        if (btnStart)  btnStart.disabled  = inst.isRunning || !connected;
+        if (btnStop)   btnStop.disabled   = !inst.isRunning || !connected;
+        if (btnDelete) btnDelete.disabled = isDefault || inst.isRunning || !connected;
+    }
+
+    function updateAgentBadge(connected) {
+        var badge = document.getElementById('agent-badge');
+        if (!badge) return;
+        badge.className = 'badge fs-6 ' + (connected ? 'bg-success' : 'bg-danger');
+        badge.textContent = 'Agent: ' + (connected ? 'Connected' : 'Disconnected');
+
+        var btnCreate = document.getElementById('btn-create');
+        if (btnCreate) btnCreate.disabled = !connected;
+    }
+
+    function poll() {
+        if (busy) return;
+        fetch('/ConsoleApp/StatusJson')
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data || busy) return;
+                updateAgentBadge(data.connected);
+                (data.instances || []).forEach(function (inst) {
+                    updateRow(inst, data.connected);
+                });
+            })
+            .catch(function () { /* network error — skip tick */ });
+    }
+
+    setInterval(poll, INTERVAL);
 }());
 </script>
 }
