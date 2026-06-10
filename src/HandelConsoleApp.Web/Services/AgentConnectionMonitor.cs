@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace HandelConsoleApp.Web.Services;
+namespace HandelApp.Web.Services;
 
 public sealed class AgentConnectionMonitor(
     RemoteAgentService agentService,

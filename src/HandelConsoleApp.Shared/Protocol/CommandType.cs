@@ -1,4 +1,4 @@
-namespace HandelConsoleApp.Shared.Protocol;
+namespace HandelApp.Shared.Protocol;
 
 public enum CommandType
 {
@@ -7,5 +7,8 @@ public enum CommandType
     Status         = 3,
     CreateInstance = 4,
     DeleteInstance = 5,
-    ListInstances  = 6
+    ListInstances  = 6,
+    RegisterApp    = 7,
+    UnregisterApp  = 8,
+    ListApps       = 9
 }

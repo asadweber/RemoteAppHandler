@@ -1,6 +1,6 @@
-using HandelConsoleApp.Shared.Protocol;
+using HandelApp.Shared.Protocol;
 
-namespace HandelConsoleApp.Web.Services;
+namespace HandelApp.Web.Services;
 
 public interface IRemoteAgentService
 {

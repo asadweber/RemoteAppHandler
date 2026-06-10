@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 
-namespace HandelConsoleApp.Web.Authorization;
+namespace HandelApp.Web.Authorization;
 
 public sealed class AdGroupHandler : AuthorizationHandler<AdGroupRequirement>
 {

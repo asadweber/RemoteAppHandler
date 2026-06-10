@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using HandelConsoleApp.Web.Models;
+using HandelApp.Web.Models;
 
-namespace HandelConsoleApp.Web.Controllers;
+namespace HandelApp.Web.Controllers;
 
 public class HomeController : Controller
 {

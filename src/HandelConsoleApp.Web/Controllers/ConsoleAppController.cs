@@ -1,19 +1,19 @@
-using HandelConsoleApp.Shared.Protocol;
-using HandelConsoleApp.Web.Models;
-using HandelConsoleApp.Web.Services;
+using HandelApp.Shared.Protocol;
+using HandelApp.Web.Models;
+using HandelApp.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HandelConsoleApp.Web.Controllers;
+namespace HandelApp.Web.Controllers;
 
 public sealed class ConsoleAppController(
     IRemoteAgentService agentService,
     ILogger<ConsoleAppController> logger) : Controller
 {
-    [HttpGet("")]
-    [HttpGet("/ConsoleApp")]
-    public async Task<IActionResult> Index(CancellationToken ct)
+    [HttpGet("/ConsoleApp/{appId}")]
+    public async Task<IActionResult> Index(string appId, CancellationToken ct)
     {
-        var response = await SendSafeAsync(new AgentCommand { Command = CommandType.ListInstances }, ct);
+        var response = await SendSafeAsync(
+            new AgentCommand { Command = CommandType.ListInstances, AppId = appId }, ct);
         var vm = new InstancesViewModel
         {
             IsConnectedToAgent = agentService.IsConnected,
@@ -21,14 +21,16 @@ public sealed class ConsoleAppController(
             ResultMessage      = TempData["Result"] as string,
             IsError            = TempData["IsError"] is true
         };
+        ViewBag.AppId = appId;
         return View(vm);
     }
 
-    [HttpPost("/ConsoleApp/Create")]
+    [HttpPost("/ConsoleApp/{appId}/Create")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CancellationToken ct)
+    public async Task<IActionResult> Create(string appId, CancellationToken ct)
     {
-        var listResponse = await SendSafeAsync(new AgentCommand { Command = CommandType.ListInstances }, ct);
+        var listResponse = await SendSafeAsync(
+            new AgentCommand { Command = CommandType.ListInstances, AppId = appId }, ct);
         int nextNumber = 1;
         if (listResponse?.Instances is { Count: > 0 } instances)
         {
@@ -43,63 +45,68 @@ public sealed class ConsoleAppController(
         var cmd = new AgentCommand
         {
             Command        = CommandType.CreateInstance,
+            AppId          = appId,
             InstanceNumber = nextNumber,
             RequestedBy    = User.Identity?.Name ?? "unknown"
         };
         var response = await SendSafeAsync(cmd, ct);
         SetResult(response, $"Instance-{nextNumber} created");
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { appId });
     }
 
-    [HttpPost("/ConsoleApp/Delete/{number:int}")]
+    [HttpPost("/ConsoleApp/{appId}/Delete/{number:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(int number, CancellationToken ct)
+    public async Task<IActionResult> Delete(string appId, int number, CancellationToken ct)
     {
         var cmd = new AgentCommand
         {
             Command        = CommandType.DeleteInstance,
+            AppId          = appId,
             InstanceNumber = number,
             RequestedBy    = User.Identity?.Name ?? "unknown"
         };
         var response = await SendSafeAsync(cmd, ct);
         SetResult(response, $"Instance-{number} deleted");
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { appId });
     }
 
-    [HttpPost("/ConsoleApp/Start/{name}")]
+    [HttpPost("/ConsoleApp/{appId}/Start/{name}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Start(string name, CancellationToken ct)
+    public async Task<IActionResult> Start(string appId, string name, CancellationToken ct)
     {
         var cmd = new AgentCommand
         {
             Command      = CommandType.Start,
+            AppId        = appId,
             InstanceName = name,
             RequestedBy  = User.Identity?.Name ?? "unknown"
         };
         var response = await SendSafeAsync(cmd, ct);
         SetResult(response, $"{name} started");
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { appId });
     }
 
-    [HttpPost("/ConsoleApp/Stop/{name}")]
+    [HttpPost("/ConsoleApp/{appId}/Stop/{name}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Stop(string name, CancellationToken ct)
+    public async Task<IActionResult> Stop(string appId, string name, CancellationToken ct)
     {
         var cmd = new AgentCommand
         {
             Command      = CommandType.Stop,
+            AppId        = appId,
             InstanceName = name,
             RequestedBy  = User.Identity?.Name ?? "unknown"
         };
         var response = await SendSafeAsync(cmd, ct);
         SetResult(response, $"{name} stopped");
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { appId });
     }
 
-    [HttpGet("/ConsoleApp/StatusJson")]
-    public async Task<IActionResult> StatusJson(CancellationToken ct)
+    [HttpGet("/ConsoleApp/{appId}/StatusJson")]
+    public async Task<IActionResult> StatusJson(string appId, CancellationToken ct)
     {
-        var response = await SendSafeAsync(new AgentCommand { Command = CommandType.ListInstances }, ct);
+        var response = await SendSafeAsync(
+            new AgentCommand { Command = CommandType.ListInstances, AppId = appId }, ct);
         return Json(new
         {
             connected = agentService.IsConnected,
@@ -109,10 +116,7 @@ public sealed class ConsoleAppController(
 
     private async Task<AgentResponse?> SendSafeAsync(AgentCommand cmd, CancellationToken ct)
     {
-        try
-        {
-            return await agentService.SendCommandAsync(cmd, ct);
-        }
+        try { return await agentService.SendCommandAsync(cmd, ct); }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Could not reach remote agent");

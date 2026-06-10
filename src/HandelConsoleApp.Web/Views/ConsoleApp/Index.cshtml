@@ -1,6 +1,7 @@
-@model HandelConsoleApp.Web.Models.InstancesViewModel
+@model HandelApp.Web.Models.InstancesViewModel
 @{
     ViewData["Title"] = "App Instances";
+    var appId = ViewBag.AppId as string ?? string.Empty;
 }
 
 @* Full-page blocking overlay shown during any form submission *@
@@ -13,7 +14,10 @@
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>App Instances</h2>
+        <div>
+            <a href="/Apps" class="text-decoration-none text-muted small">&larr; All Apps</a>
+            <h2 class="mb-0">@appId — Instances</h2>
+        </div>
         <span id="agent-badge" class="badge @(Model.IsConnectedToAgent ? "bg-success" : "bg-danger") fs-6">
             Agent: @(Model.IsConnectedToAgent ? "Connected" : "Disconnected")
         </span>
@@ -28,7 +32,7 @@
     }
 
     <div class="mb-3">
-        <form asp-action="Create" method="post" data-action-label="Creating new instance…">
+        <form asp-action="Create" asp-route-appId="@appId" method="post" data-action-label="Creating new instance…">
             @Html.AntiForgeryToken()
             <button id="btn-create" type="submit" class="btn btn-primary"
                     @(!Model.IsConnectedToAgent ? "disabled" : "")>
@@ -78,23 +82,24 @@
                         </td>
                         <td data-pid>@(inst.ProcessId?.ToString() ?? "-")</td>
                         <td class="d-flex gap-1">
-                            <form asp-action="Start" asp-route-name="@inst.InstanceName" method="post"
-                                  data-action-label="Starting @inst.InstanceName…">
+                            <form asp-action="Start" asp-route-appId="@appId" asp-route-name="@inst.InstanceName"
+                                  method="post" data-action-label="Starting @inst.InstanceName…">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-sm btn-success" data-btn="start"
                                         @(inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
                                     Start
                                 </button>
                             </form>
-                            <form asp-action="Stop" asp-route-name="@inst.InstanceName" method="post"
-                                  data-action-label="Stopping @inst.InstanceName…">
+                            <form asp-action="Stop" asp-route-appId="@appId" asp-route-name="@inst.InstanceName"
+                                  method="post" data-action-label="Stopping @inst.InstanceName…">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-sm btn-warning" data-btn="stop"
                                         @(!inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
                                     Stop
                                 </button>
                             </form>
-                            <form asp-action="Delete" asp-route-number="@num" method="post"
+                            <form asp-action="Delete" asp-route-appId="@appId" asp-route-number="@num"
+                                  method="post"
                                   data-action-label="Deleting @inst.InstanceName…"
                                   data-confirm="Delete @inst.InstanceName?">
                                 @Html.AntiForgeryToken()
@@ -116,10 +121,10 @@
 (function () {
     var overlay   = document.getElementById('action-overlay');
     var label     = document.getElementById('overlay-label');
-    var busy      = false;   // true while a form submission is in flight
-    var INTERVAL  = 5000;    // poll every 5 seconds
+    var busy      = false;
+    var INTERVAL  = 5000;
+    var appId     = '@appId';
 
-    // ── Overlay & form wiring ────────────────────────────────────────────
     function showOverlay(message) {
         busy = true;
         label.textContent = message;
@@ -130,22 +135,17 @@
     document.querySelectorAll('form[data-action-label]').forEach(function (form) {
         form.addEventListener('submit', function (e) {
             var confirmMsg = form.dataset.confirm;
-            if (confirmMsg && !confirm(confirmMsg)) {
-                e.preventDefault();
-                return;
-            }
+            if (confirmMsg && !confirm(confirmMsg)) { e.preventDefault(); return; }
             showOverlay(form.dataset.actionLabel);
         });
     });
 
-    // ── Live status polling ──────────────────────────────────────────────
     function updateRow(inst, connected) {
         var row = document.querySelector('tr[data-instance="' + inst.instanceName + '"]');
         if (!row) return;
 
         var isDefault = row.dataset.isDefault === 'true';
 
-        // Status badge
         var statusCell = row.querySelector('[data-status]');
         if (statusCell) {
             var badge = statusCell.querySelector('.badge') || document.createElement('span');
@@ -154,11 +154,9 @@
             if (!statusCell.contains(badge)) statusCell.appendChild(badge);
         }
 
-        // PID
         var pidCell = row.querySelector('[data-pid]');
         if (pidCell) pidCell.textContent = inst.processId != null ? inst.processId : '-';
 
-        // Buttons
         var btnStart  = row.querySelector('[data-btn="start"]');
         var btnStop   = row.querySelector('[data-btn="stop"]');
         var btnDelete = row.querySelector('[data-btn="delete"]');
@@ -180,7 +178,7 @@
 
     function poll() {
         if (busy) return;
-        fetch('/ConsoleApp/StatusJson')
+        fetch('/ConsoleApp/' + appId + '/StatusJson')
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
                 if (!data || busy) return;

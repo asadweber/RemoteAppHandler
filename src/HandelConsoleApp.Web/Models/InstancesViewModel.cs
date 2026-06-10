@@ -1,6 +1,6 @@
-using HandelConsoleApp.Shared.Protocol;
+using HandelApp.Shared.Protocol;
 
-namespace HandelConsoleApp.Web.Models;
+namespace HandelApp.Web.Models;
 
 public sealed class InstancesViewModel
 {

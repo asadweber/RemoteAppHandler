@@ -15,4 +15,10 @@
   <ItemGroup>
     <ProjectReference Include="..\HandelConsoleApp.Shared\HandelApp.Shared.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="apps.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

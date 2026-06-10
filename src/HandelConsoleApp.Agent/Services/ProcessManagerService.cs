@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using HandelConsoleApp.Shared.Protocol;
+using HandelApp.Shared.Protocol;
 using Microsoft.Extensions.Options;
 
-namespace HandelConsoleApp.Agent.Services;
+namespace HandelApp.Agent.Services;
 
 public sealed class ProcessManagerService(
     IOptions<ConsoleAppOptions> options,

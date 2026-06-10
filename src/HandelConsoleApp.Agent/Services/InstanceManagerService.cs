@@ -1,7 +1,7 @@
-using HandelConsoleApp.Shared.Protocol;
+using HandelApp.Shared.Protocol;
 using Microsoft.Extensions.Options;
 
-namespace HandelConsoleApp.Agent.Services;
+namespace HandelApp.Agent.Services;
 
 public sealed class InstanceManagerService(
     IOptions<ConsoleAppOptions> options,

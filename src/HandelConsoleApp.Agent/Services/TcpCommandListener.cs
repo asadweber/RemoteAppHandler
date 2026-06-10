@@ -1,13 +1,12 @@
 using System.Net;
 using System.Net.Sockets;
-using HandelConsoleApp.Shared.Protocol;
+using HandelApp.Shared.Protocol;
 using Microsoft.Extensions.Options;
 
-namespace HandelConsoleApp.Agent.Services;
+namespace HandelApp.Agent.Services;
 
 public sealed class TcpCommandListener(
-    InstanceManagerService instanceManager,
-    ProcessManagerRegistry registry,
+    MultiAppManagerService multiAppManager,
     IOptions<AgentOptions> agentOptions,
     ILogger<TcpCommandListener> logger) : BackgroundService
 {
@@ -69,42 +68,50 @@ public sealed class TcpCommandListener(
                     var command = await ProtocolSerializer.ReadMessageAsync<AgentCommand>(stream, ct);
                     if (command is null) break;
 
-                    logger.LogDebug("Command {Cmd} from {Remote} by {User}",
-                        command.Command, remoteEp, command.RequestedBy);
+                    logger.LogDebug("Command {Cmd} AppId={AppId} from {Remote} by {User}",
+                        command.Command, command.AppId, remoteEp, command.RequestedBy);
 
                     AgentResponse response;
                     try
                     {
                         response = command.Command switch
                         {
-                            CommandType.CreateInstance =>
-                                instanceManager.CreateInstance(command.InstanceNumber ?? 1, command.RequestedBy),
+                            CommandType.ListApps =>
+                                multiAppManager.ListApps(),
 
-                            CommandType.DeleteInstance =>
-                                instanceManager.DeleteInstance(command.InstanceNumber ?? 1, command.RequestedBy),
+                            CommandType.RegisterApp when command.AppDefinition is not null =>
+                                multiAppManager.RegisterApp(command.AppDefinition, command.RequestedBy),
+
+                            CommandType.UnregisterApp =>
+                                multiAppManager.UnregisterApp(command.AppId, command.RequestedBy),
 
                             CommandType.ListInstances =>
-                                instanceManager.ListInstances(),
+                                multiAppManager.ListInstances(command.AppId),
+
+                            CommandType.CreateInstance =>
+                                multiAppManager.CreateInstance(command.AppId, command.InstanceNumber ?? 1, command.RequestedBy),
+
+                            CommandType.DeleteInstance =>
+                                multiAppManager.DeleteInstance(command.AppId, command.InstanceNumber ?? 1, command.RequestedBy),
 
                             CommandType.Start =>
-                                registry.GetOrCreate(command.InstanceName).Start(command.RequestedBy),
+                                multiAppManager.StartInstance(command.AppId, command.InstanceName, command.RequestedBy),
 
                             CommandType.Stop =>
-                                registry.GetOrCreate(command.InstanceName).Stop(command.RequestedBy),
+                                multiAppManager.StopInstance(command.AppId, command.InstanceName, command.RequestedBy),
 
                             CommandType.Status =>
-                                registry.GetOrCreate(command.InstanceName).GetStatus(),
+                                multiAppManager.GetInstanceStatus(command.AppId, command.InstanceName),
 
                             _ => new AgentResponse
                             {
                                 Status  = ResponseStatus.Error,
-                                Message = $"Unknown command: {command.Command}"
+                                Message = $"Unknown or malformed command: {command.Command}"
                             }
                         };
                     }
                     catch (ArgumentException ex)
                     {
-                        // Validation rejection (bad instance name / path traversal attempt)
                         logger.LogWarning("Rejected command {Cmd} from {Remote}: {Msg}",
                             command.Command, remoteEp, ex.Message);
                         response = new AgentResponse { Status = ResponseStatus.Error, Message = ex.Message };

@@ -1,50 +1,35 @@
-using Microsoft.Extensions.Options;
-
-namespace HandelConsoleApp.Agent.Services;
+namespace HandelApp.Agent.Services;
 
 public sealed class DefaultInstanceStartupService(
-    ProcessManagerRegistry registry,
-    IOptions<ConsoleAppOptions> options,
+    MultiAppManagerService multiAppManager,
     ILogger<DefaultInstanceStartupService> logger) : BackgroundService
 {
-    private readonly ConsoleAppOptions _opts = options.Value;
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (string.IsNullOrEmpty(_opts.DefaultInstanceName) ||
-            string.IsNullOrEmpty(_opts.DefaultInstancePath) ||
-            !Directory.Exists(_opts.DefaultInstancePath))
-        {
-            logger.LogWarning("Default instance path '{Path}' not found — skipping auto-start", _opts.DefaultInstancePath);
-            return;
-        }
-
-        // Brief delay so TcpCommandListener binds first and logs appear in order
+        // Brief delay so TcpCommandListener binds first
         await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
         if (stoppingToken.IsCancellationRequested) return;
 
-        try
+        foreach (var (appId, manager) in multiAppManager.GetDefaultManagers())
         {
-            var manager = registry.GetOrCreate(_opts.DefaultInstanceName);
-
-            if (manager.IsRunning)
+            try
             {
-                logger.LogInformation("Default instance '{Name}' already running (PID {Pid})",
-                    _opts.DefaultInstanceName, manager.ProcessId);
-                return;
-            }
+                if (manager.IsRunning)
+                {
+                    logger.LogInformation("[{AppId}] Default already running (PID {Pid})", appId, manager.ProcessId);
+                    continue;
+                }
 
-            var response = manager.Start("agent-startup");
-            if (response.Status == HandelConsoleApp.Shared.Protocol.ResponseStatus.Ok)
-                logger.LogInformation("Default instance '{Name}' started on agent startup (PID {Pid})",
-                    _opts.DefaultInstanceName, response.ProcessId);
-            else
-                logger.LogWarning("Default instance '{Name}' failed to start: {Msg}",
-                    _opts.DefaultInstanceName, response.Message);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error auto-starting default instance '{Name}'", _opts.DefaultInstanceName);
+                var response = manager.Start("agent-startup");
+                if (response.Status == HandelApp.Shared.Protocol.ResponseStatus.Ok)
+                    logger.LogInformation("[{AppId}] Default started on agent startup (PID {Pid})", appId, response.ProcessId);
+                else
+                    logger.LogWarning("[{AppId}] Default failed to start: {Msg}", appId, response.Message);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[{AppId}] Error auto-starting default instance", appId);
+            }
         }
     }
 }

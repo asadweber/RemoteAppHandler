@@ -1,5 +1,5 @@
-using HandelConsoleApp.Web.Authorization;
-using HandelConsoleApp.Web.Services;
+using HandelApp.Web.Authorization;
+using HandelApp.Web.Services;
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Authorization;
 
@@ -62,6 +62,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=ConsoleApp}/{action=Index}/{id?}");
+    pattern: "{controller=Apps}/{action=Index}/{id?}");
 
 app.Run();

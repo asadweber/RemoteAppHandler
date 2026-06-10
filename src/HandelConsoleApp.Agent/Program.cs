@@ -1,4 +1,4 @@
-using HandelConsoleApp.Agent.Services;
+using HandelApp.Agent.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -8,10 +8,9 @@ builder.Services.AddWindowsService(options =>
 });
 
 builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection("Agent"));
-builder.Services.Configure<ConsoleAppOptions>(builder.Configuration.GetSection("ConsoleApp"));
 
-builder.Services.AddSingleton<ProcessManagerRegistry>();
-builder.Services.AddSingleton<InstanceManagerService>();
+builder.Services.AddSingleton<AppRegistryService>();
+builder.Services.AddSingleton<MultiAppManagerService>();
 builder.Services.AddHostedService<TcpCommandListener>();
 builder.Services.AddHostedService<DefaultInstanceStartupService>();
 

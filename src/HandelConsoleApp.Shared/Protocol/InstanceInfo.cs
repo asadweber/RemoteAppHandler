@@ -1,4 +1,4 @@
-namespace HandelConsoleApp.Shared.Protocol;
+namespace HandelApp.Shared.Protocol;
 
 public sealed record InstanceInfo
 {

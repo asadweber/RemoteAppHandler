@@ -1,10 +1,12 @@
-namespace HandelConsoleApp.Shared.Protocol;
+namespace HandelApp.Shared.Protocol;
 
 public sealed record AgentCommand
 {
-    public CommandType Command        { get; init; }
-    public string      RequestedBy    { get; init; } = string.Empty;
-    public Guid        CorrelationId  { get; init; } = Guid.NewGuid();
-    public int?        InstanceNumber { get; init; }
-    public string      InstanceName   { get; init; } = string.Empty;
+    public CommandType    Command        { get; init; }
+    public string         RequestedBy    { get; init; } = string.Empty;
+    public Guid           CorrelationId  { get; init; } = Guid.NewGuid();
+    public int?           InstanceNumber { get; init; }
+    public string         InstanceName   { get; init; } = string.Empty;
+    public string         AppId          { get; init; } = string.Empty;
+    public AppDefinition? AppDefinition  { get; init; }
 }

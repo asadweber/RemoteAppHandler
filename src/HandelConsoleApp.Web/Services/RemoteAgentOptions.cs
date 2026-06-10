@@ -1,4 +1,4 @@
-namespace HandelConsoleApp.Web.Services;
+namespace HandelApp.Web.Services;
 
 public sealed class RemoteAgentOptions
 {

@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 
-namespace HandelConsoleApp.Agent.Services;
+namespace HandelApp.Agent.Services;
 
 public sealed class ProcessManagerRegistry(
     IOptions<ConsoleAppOptions> options,

@@ -1,8 +1,8 @@
 using System.Net.Sockets;
-using HandelConsoleApp.Shared.Protocol;
+using HandelApp.Shared.Protocol;
 using Microsoft.Extensions.Options;
 
-namespace HandelConsoleApp.Web.Services;
+namespace HandelApp.Web.Services;
 
 public sealed class RemoteAgentService : IRemoteAgentService, IAsyncDisposable
 {

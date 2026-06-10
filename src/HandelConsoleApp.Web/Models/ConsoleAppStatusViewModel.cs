@@ -1,4 +1,4 @@
-namespace HandelConsoleApp.Web.Models;
+namespace HandelApp.Web.Models;
 
 public sealed class ConsoleAppStatusViewModel
 {
