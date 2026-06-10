@@ -84,6 +84,7 @@ public sealed class ProcessManagerService(
         {
             // Attach to externally-started process before deciding to launch a new one
             AttachExistingUnderLock();
+            KillDuplicatesUnderLock();
 
             if (_managedProcess is { HasExited: false })
             {
@@ -107,6 +108,7 @@ public sealed class ProcessManagerService(
         {
             // Attach to externally-started process so we can stop it
             AttachExistingUnderLock();
+            KillDuplicatesUnderLock();
 
             if (_managedProcess is null || _managedProcess.HasExited)
             {
@@ -157,7 +159,11 @@ public sealed class ProcessManagerService(
 
     public AgentResponse GetStatus()
     {
-        lock (_lock) { AttachExistingUnderLock(); }
+        lock (_lock)
+        {
+            AttachExistingUnderLock();
+            KillDuplicatesUnderLock();
+        }
         return new AgentResponse
         {
             Status    = ResponseStatus.Ok,
@@ -243,6 +249,49 @@ public sealed class ProcessManagerService(
         catch (Exception ex)
         {
             logger.LogDebug(ex, "[{Instance}] Could not scan for existing process", instanceName);
+        }
+    }
+
+    // Kills any extra processes at the same exe path that are NOT the one agent tracks.
+    // Must be called inside _lock.
+    private void KillDuplicatesUnderLock()
+    {
+        if (_managedProcess is null || _managedProcess.HasExited)
+            return;
+
+        var exeFull  = Path.GetFullPath(_options.ExecutablePath);
+        var exeName  = Path.GetFileNameWithoutExtension(exeFull);
+        var ownedPid = _managedProcess.Id;
+
+        try
+        {
+            foreach (var p in Process.GetProcessesByName(exeName))
+            {
+                if (p.Id == ownedPid) { p.Dispose(); continue; }
+                try
+                {
+                    var modulePath = p.MainModule?.FileName;
+                    if (modulePath is not null &&
+                        string.Equals(Path.GetFullPath(modulePath), exeFull, StringComparison.OrdinalIgnoreCase))
+                    {
+                        p.Kill(entireProcessTree: true);
+                        logger.LogWarning("[{Instance}] Killed duplicate process (PID {Pid}) — agent owns PID {Owned}",
+                            instanceName, p.Id, ownedPid);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "[{Instance}] Could not kill duplicate PID {Pid}", instanceName, p.Id);
+                }
+                finally
+                {
+                    p.Dispose();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "[{Instance}] Error scanning for duplicates", instanceName);
         }
     }
 
