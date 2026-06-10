@@ -13,6 +13,7 @@ builder.Services.Configure<ConsoleAppOptions>(builder.Configuration.GetSection("
 builder.Services.AddSingleton<ProcessManagerRegistry>();
 builder.Services.AddSingleton<InstanceManagerService>();
 builder.Services.AddHostedService<TcpCommandListener>();
+builder.Services.AddHostedService<DefaultInstanceStartupService>();
 
 if (OperatingSystem.IsWindows())
     builder.Logging.AddEventLog();
