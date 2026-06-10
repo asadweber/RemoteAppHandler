@@ -13,6 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\HandelConsoleApp.Shared\HandelConsoleApp.Shared.csproj" />
+    <ProjectReference Include="..\HandelConsoleApp.Shared\HandelApp.Shared.csproj" />
   </ItemGroup>
 </Project>

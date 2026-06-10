@@ -1,92 +1,132 @@
 using HandelConsoleApp.Shared.Protocol;
 using HandelConsoleApp.Web.Models;
 using HandelConsoleApp.Web.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HandelConsoleApp.Web.Controllers;
 
-//[Authorize]
-//[Route("[controller]")]
 public sealed class ConsoleAppController(
     IRemoteAgentService agentService,
     ILogger<ConsoleAppController> logger) : Controller
 {
-    //[Authorize(Policy = "CanViewStatus")]
     [HttpGet("")]
+    [HttpGet("/ConsoleApp")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
-        var response = await SendSafeAsync(CommandType.Status, ct);
-        var vm = new ConsoleAppStatusViewModel
+        var response = await SendSafeAsync(new AgentCommand { Command = CommandType.ListInstances }, ct);
+        var vm = new InstancesViewModel
         {
             IsConnectedToAgent = agentService.IsConnected,
-            IsRunning          = response?.IsRunning ?? false,
-            ProcessId          = response?.ProcessId,
-            LastMessage        = response?.Message ?? "Agent unreachable",
-            RequestedBy        = User.Identity?.Name ?? "unknown",
-            ResultMessage      = TempData["Result"] as string
+            Instances          = response?.Instances ?? [],
+            ResultMessage      = TempData["Result"] as string,
+            IsError            = TempData["IsError"] is true
         };
         return View(vm);
     }
 
-    //[Authorize(Policy = "CanControlApp")]
-    [HttpPost("Start")]
+    [HttpPost("/ConsoleApp/Create")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Start(CancellationToken ct)
+    public async Task<IActionResult> Create(CancellationToken ct)
     {
+        var listResponse = await SendSafeAsync(new AgentCommand { Command = CommandType.ListInstances }, ct);
+        int nextNumber = 1;
+        if (listResponse?.Instances is { Count: > 0 } instances)
+        {
+            var maxNum = instances
+                .Select(i => ParseInstanceNumber(i.InstanceName))
+                .Where(n => n > 0)
+                .DefaultIfEmpty(0)
+                .Max();
+            nextNumber = maxNum + 1;
+        }
+
         var cmd = new AgentCommand
         {
-            Command     = CommandType.Start,
-            RequestedBy = User.Identity?.Name ?? "unknown"
+            Command        = CommandType.CreateInstance,
+            InstanceNumber = nextNumber,
+            RequestedBy    = User.Identity?.Name ?? "unknown"
         };
-        var response = await agentService.SendCommandAsync(cmd, ct);
-        logger.LogInformation("Start by {User}: {Status} - {Msg}",
-            cmd.RequestedBy, response.Status, response.Message);
-
-        TempData["Result"] = response.Message;
+        var response = await SendSafeAsync(cmd, ct);
+        SetResult(response, $"Instance-{nextNumber} created");
         return RedirectToAction(nameof(Index));
     }
 
-    //[Authorize(Policy = "CanControlApp")]
-    [HttpPost("Stop")]
+    [HttpPost("/ConsoleApp/Delete/{number:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Stop(CancellationToken ct)
+    public async Task<IActionResult> Delete(int number, CancellationToken ct)
     {
         var cmd = new AgentCommand
         {
-            Command     = CommandType.Stop,
-            RequestedBy = User.Identity?.Name ?? "unknown"
+            Command        = CommandType.DeleteInstance,
+            InstanceNumber = number,
+            RequestedBy    = User.Identity?.Name ?? "unknown"
         };
-        var response = await agentService.SendCommandAsync(cmd, ct);
-        logger.LogInformation("Stop by {User}: {Status} - {Msg}",
-            cmd.RequestedBy, response.Status, response.Message);
-
-        TempData["Result"] = response.Message;
+        var response = await SendSafeAsync(cmd, ct);
+        SetResult(response, $"Instance-{number} deleted");
         return RedirectToAction(nameof(Index));
     }
 
-    //[Authorize(Policy = "CanViewStatus")]
-    [HttpGet("Status")]
-    [Produces("application/json")]
-    public async Task<IActionResult> Status(CancellationToken ct)
+    [HttpPost("/ConsoleApp/Start/{name}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Start(string name, CancellationToken ct)
     {
-        var response = await SendSafeAsync(CommandType.Status, ct);
-        if (response is null)
-            return StatusCode(503, new { error = "Agent unreachable" });
-        return Ok(response);
+        var cmd = new AgentCommand
+        {
+            Command      = CommandType.Start,
+            InstanceName = name,
+            RequestedBy  = User.Identity?.Name ?? "unknown"
+        };
+        var response = await SendSafeAsync(cmd, ct);
+        SetResult(response, $"{name} started");
+        return RedirectToAction(nameof(Index));
     }
 
-    private async Task<AgentResponse?> SendSafeAsync(CommandType type, CancellationToken ct)
+    [HttpPost("/ConsoleApp/Stop/{name}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Stop(string name, CancellationToken ct)
+    {
+        var cmd = new AgentCommand
+        {
+            Command      = CommandType.Stop,
+            InstanceName = name,
+            RequestedBy  = User.Identity?.Name ?? "unknown"
+        };
+        var response = await SendSafeAsync(cmd, ct);
+        SetResult(response, $"{name} stopped");
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<AgentResponse?> SendSafeAsync(AgentCommand cmd, CancellationToken ct)
     {
         try
         {
-            return await agentService.SendCommandAsync(
-                new AgentCommand { Command = type, RequestedBy = User.Identity?.Name ?? "unknown" }, ct);
+            return await agentService.SendCommandAsync(cmd, ct);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Could not reach remote agent");
             return null;
         }
+    }
+
+    private void SetResult(AgentResponse? response, string successDefault)
+    {
+        if (response is null)
+        {
+            TempData["Result"]  = "Agent unreachable";
+            TempData["IsError"] = true;
+            return;
+        }
+        var isError = response.Status is ResponseStatus.Error or ResponseStatus.Unauthorized;
+        TempData["Result"]  = string.IsNullOrEmpty(response.Message) ? successDefault : response.Message;
+        TempData["IsError"] = isError;
+        if (isError) logger.LogWarning("{Msg}", response.Message);
+        else         logger.LogInformation("{Msg}", response.Message);
+    }
+
+    private static int ParseInstanceNumber(string name)
+    {
+        var parts = name.Split('-');
+        return parts.Length > 0 && int.TryParse(parts[^1], out var n) ? n : 0;
     }
 }

@@ -1,76 +1,101 @@
-@model HandelConsoleApp.Web.Models.ConsoleAppStatusViewModel
+@model HandelConsoleApp.Web.Models.InstancesViewModel
 @{
-    ViewData["Title"] = "Console App Control";
+    ViewData["Title"] = "Console App Instances";
 }
 
 <div class="container mt-4">
-    <h2>Console App Remote Control</h2>
-    <hr />
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Console App Instances</h2>
+        <span class="badge @(Model.IsConnectedToAgent ? "bg-success" : "bg-danger") fs-6">
+            Agent: @(Model.IsConnectedToAgent ? "Connected" : "Disconnected")
+        </span>
+    </div>
 
     @if (Model.ResultMessage is not null)
     {
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <div class="alert @(Model.IsError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
             @Model.ResultMessage
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    <div class="card mb-4">
-        <div class="card-header">Status</div>
-        <div class="card-body">
-            <dl class="row">
-                <dt class="col-sm-4">Agent Connection</dt>
-                <dd class="col-sm-8">
-                    @if (Model.IsConnectedToAgent)
-                    {
-                        <span class="badge bg-success">Connected</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-danger">Disconnected</span>
-                    }
-                </dd>
-
-                <dt class="col-sm-4">Process</dt>
-                <dd class="col-sm-8">
-                    @if (Model.IsRunning)
-                    {
-                        <span class="badge bg-success">Running</span>
-                        @if (Model.ProcessId.HasValue)
-                        {
-                            <span class="ms-2 text-muted">PID @Model.ProcessId</span>
-                        }
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">Stopped</span>
-                    }
-                </dd>
-
-                <dt class="col-sm-4">Last Message</dt>
-                <dd class="col-sm-8">@Model.LastMessage</dd>
-
-                <dt class="col-sm-4">Requested By</dt>
-                <dd class="col-sm-8">@Model.RequestedBy</dd>
-            </dl>
-        </div>
-    </div>
-
-    <div class="d-flex gap-2">
-        <form asp-action="Start" method="post">
+    <div class="mb-3">
+        <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-success"
-                    @(Model.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
-                Start
-            </button>
-        </form>
-
-        <form asp-action="Stop" method="post">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-danger"
-                    @(!Model.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
-                Stop
+            <button type="submit" class="btn btn-primary"
+                    @(!Model.IsConnectedToAgent ? "disabled" : "")>
+                + Create New Instance
             </button>
         </form>
     </div>
+
+    @if (Model.Instances.Count == 0)
+    {
+        <div class="alert alert-info">No instances found. Click "Create New Instance" to get started.</div>
+    }
+    else
+    {
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Instance</th>
+                    <th>Folder</th>
+                    <th>Status</th>
+                    <th>PID</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var inst in Model.Instances)
+                {
+                    var num = inst.InstanceName.Split('-').LastOrDefault();
+                    <tr>
+                        <td>
+                            <strong>@inst.InstanceName</strong>
+                            @if (inst.IsDefault)
+                            {
+                                <span class="badge bg-info ms-1">Default</span>
+                            }
+                        </td>
+                        <td><code>@inst.FolderPath</code></td>
+                        <td>
+                            @if (inst.IsRunning)
+                            {
+                                <span class="badge bg-success">Running</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Stopped</span>
+                            }
+                        </td>
+                        <td>@(inst.ProcessId?.ToString() ?? "-")</td>
+                        <td class="d-flex gap-1">
+                            <form asp-action="Start" asp-route-name="@inst.InstanceName" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-success"
+                                        @(inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
+                                    Start
+                                </button>
+                            </form>
+                            <form asp-action="Stop" asp-route-name="@inst.InstanceName" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-warning"
+                                        @(inst.IsDefault || !inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
+                                    Stop
+                                </button>
+                            </form>
+                            <form asp-action="Delete" asp-route-number="@num" method="post"
+                                  onsubmit="return confirm('Delete @inst.InstanceName?')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-danger"
+                                        @(inst.IsDefault || inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>

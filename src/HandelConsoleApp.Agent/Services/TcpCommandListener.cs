@@ -6,7 +6,8 @@ using Microsoft.Extensions.Options;
 namespace HandelConsoleApp.Agent.Services;
 
 public sealed class TcpCommandListener(
-    ProcessManagerService processManager,
+    InstanceManagerService instanceManager,
+    ProcessManagerRegistry registry,
     IOptions<AgentOptions> agentOptions,
     ILogger<TcpCommandListener> logger) : BackgroundService
 {
@@ -71,17 +72,43 @@ public sealed class TcpCommandListener(
                     logger.LogDebug("Command {Cmd} from {Remote} by {User}",
                         command.Command, remoteEp, command.RequestedBy);
 
-                    var response = command.Command switch
+                    AgentResponse response;
+                    try
                     {
-                        CommandType.Start  => processManager.Start(command.RequestedBy),
-                        CommandType.Stop   => processManager.Stop(command.RequestedBy),
-                        CommandType.Status => processManager.GetStatus(),
-                        _ => new AgentResponse
+                        response = command.Command switch
                         {
-                            Status  = ResponseStatus.Error,
-                            Message = $"Unknown command: {command.Command}"
-                        }
-                    };
+                            CommandType.CreateInstance =>
+                                instanceManager.CreateInstance(command.InstanceNumber ?? 1, command.RequestedBy),
+
+                            CommandType.DeleteInstance =>
+                                instanceManager.DeleteInstance(command.InstanceNumber ?? 1, command.RequestedBy),
+
+                            CommandType.ListInstances =>
+                                instanceManager.ListInstances(),
+
+                            CommandType.Start =>
+                                registry.GetOrCreate(command.InstanceName).Start(command.RequestedBy),
+
+                            CommandType.Stop =>
+                                registry.GetOrCreate(command.InstanceName).Stop(command.RequestedBy),
+
+                            CommandType.Status =>
+                                registry.GetOrCreate(command.InstanceName).GetStatus(),
+
+                            _ => new AgentResponse
+                            {
+                                Status  = ResponseStatus.Error,
+                                Message = $"Unknown command: {command.Command}"
+                            }
+                        };
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        // Validation rejection (bad instance name / path traversal attempt)
+                        logger.LogWarning("Rejected command {Cmd} from {Remote}: {Msg}",
+                            command.Command, remoteEp, ex.Message);
+                        response = new AgentResponse { Status = ResponseStatus.Error, Message = ex.Message };
+                    }
 
                     response = response with { CorrelationId = command.CorrelationId };
                     await ProtocolSerializer.WriteMessageAsync(stream, response, ct);
