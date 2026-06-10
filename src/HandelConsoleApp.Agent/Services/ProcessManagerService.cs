@@ -6,11 +6,13 @@ namespace HandelConsoleApp.Agent.Services;
 
 public sealed class ProcessManagerService(
     IOptions<ConsoleAppOptions> options,
-    ILogger<ProcessManagerService> logger)
+    ILogger<ProcessManagerService> logger,
+    string instanceName)
 {
     private readonly ConsoleAppOptions _options = options.Value;
     private Process? _managedProcess;
     private readonly object _lock = new();
+    private bool _intentionalStop;   // true while Stop() is in progress — suppresses auto-restart
 
     public bool IsRunning
     {
@@ -37,45 +39,8 @@ public sealed class ProcessManagerService(
                 };
             }
 
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName               = _options.ExecutablePath,
-                    WorkingDirectory       = _options.WorkingDirectory,
-                    Arguments              = _options.Arguments,
-                    UseShellExecute        = false,
-                    CreateNoWindow         = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError  = true
-                };
-
-                _managedProcess = new Process { StartInfo = psi, EnableRaisingEvents = true };
-                _managedProcess.Exited += (_, _) =>
-                    logger.LogInformation("Managed process exited at {Time}", DateTime.UtcNow);
-
-                _managedProcess.Start();
-
-                logger.LogInformation("Started {Exe} (PID {Pid}) on behalf of {User}",
-                    _options.ExecutablePath, _managedProcess.Id, requestedBy);
-
-                return new AgentResponse
-                {
-                    Status    = ResponseStatus.Ok,
-                    Message   = $"Started successfully (PID {_managedProcess.Id})",
-                    IsRunning = true,
-                    ProcessId = _managedProcess.Id
-                };
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to start process");
-                return new AgentResponse
-                {
-                    Status  = ResponseStatus.Error,
-                    Message = $"Failed to start: {ex.Message}"
-                };
-            }
+            _intentionalStop = false;
+            return StartInternal(requestedBy);
         }
     }
 
@@ -95,17 +60,19 @@ public sealed class ProcessManagerService(
 
             try
             {
+                _intentionalStop = true;
+
                 _managedProcess.CloseMainWindow();
                 bool exited = _managedProcess.WaitForExit(_options.ShutdownGracePeriodMs);
 
                 if (!exited)
                 {
                     _managedProcess.Kill(entireProcessTree: true);
-                    logger.LogWarning("Process killed after grace period. RequestedBy: {User}", requestedBy);
+                    logger.LogWarning("[{Instance}] Process killed after grace period. RequestedBy: {User}", instanceName, requestedBy);
                 }
                 else
                 {
-                    logger.LogInformation("Process stopped gracefully. RequestedBy: {User}", requestedBy);
+                    logger.LogInformation("[{Instance}] Process stopped gracefully. RequestedBy: {User}", instanceName, requestedBy);
                 }
 
                 return new AgentResponse
@@ -117,7 +84,8 @@ public sealed class ProcessManagerService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to stop process");
+                _intentionalStop = false;
+                logger.LogError(ex, "[{Instance}] Failed to stop process", instanceName);
                 return new AgentResponse
                 {
                     Status  = ResponseStatus.Error,
@@ -134,4 +102,83 @@ public sealed class ProcessManagerService(
         ProcessId = ProcessId,
         Message   = IsRunning ? $"Running (PID {ProcessId})" : "Not running"
     };
+
+    // Called on CLR threadpool thread when OS signals process exit.
+    private void OnProcessExited(object? sender, EventArgs e)
+    {
+        int exitCode = _managedProcess?.ExitCode ?? -1;
+
+        bool wasIntentional;
+        lock (_lock) { wasIntentional = _intentionalStop; }
+
+        if (wasIntentional)
+        {
+            logger.LogInformation("[{Instance}] Process exited as requested (exit code {Code})", instanceName, exitCode);
+            return;
+        }
+
+        if (exitCode == 0)
+            logger.LogInformation("[{Instance}] Process closed by user (exit code 0) — restarting", instanceName);
+        else
+            logger.LogWarning("[{Instance}] Process crashed (exit code {Code}) — restarting", instanceName, exitCode);
+
+        // Brief delay to avoid tight restart loop if exe is broken
+        Thread.Sleep(3_000);
+
+        lock (_lock)
+        {
+            // Double-check: someone may have called Start() or Stop() during the delay
+            if (_intentionalStop || _managedProcess is { HasExited: false })
+                return;
+
+            var result = StartInternal("auto-restart");
+            if (result.Status == ResponseStatus.Ok)
+                logger.LogInformation("[{Instance}] Auto-restarted (PID {Pid})", instanceName, result.ProcessId);
+            else
+                logger.LogError("[{Instance}] Auto-restart failed: {Msg}", instanceName, result.Message);
+        }
+    }
+
+    // Must be called inside _lock.
+    private AgentResponse StartInternal(string requestedBy)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName               = _options.ExecutablePath,
+                WorkingDirectory       = _options.WorkingDirectory,
+                Arguments              = _options.Arguments,
+                UseShellExecute        = false,
+                CreateNoWindow         = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError  = true
+            };
+
+            _managedProcess = new Process { StartInfo = psi, EnableRaisingEvents = true };
+            _managedProcess.Exited += OnProcessExited;
+
+            _managedProcess.Start();
+
+            logger.LogInformation("[{Instance}] Started {Exe} (PID {Pid}) by {User}",
+                instanceName, _options.ExecutablePath, _managedProcess.Id, requestedBy);
+
+            return new AgentResponse
+            {
+                Status    = ResponseStatus.Ok,
+                Message   = $"Started successfully (PID {_managedProcess.Id})",
+                IsRunning = true,
+                ProcessId = _managedProcess.Id
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[{Instance}] Failed to start process", instanceName);
+            return new AgentResponse
+            {
+                Status  = ResponseStatus.Error,
+                Message = $"Failed to start: {ex.Message}"
+            };
+        }
+    }
 }

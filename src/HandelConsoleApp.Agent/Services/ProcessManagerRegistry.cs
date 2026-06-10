@@ -53,7 +53,8 @@ public sealed class ProcessManagerRegistry(
 
             var manager = new ProcessManagerService(
                 new OptionsWrapper<ConsoleAppOptions>(instanceOpts),
-                loggerFactory.CreateLogger<ProcessManagerService>());
+                loggerFactory.CreateLogger<ProcessManagerService>(),
+                instanceName);
 
             _managers[instanceName] = manager;
             return manager;
