@@ -1,11 +1,11 @@
 @model HandelConsoleApp.Web.Models.InstancesViewModel
 @{
-    ViewData["Title"] = "Console App Instances";
+    ViewData["Title"] = "App Instances";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Console App Instances</h2>
+        <h2>App Instances</h2>
         <span class="badge @(Model.IsConnectedToAgent ? "bg-success" : "bg-danger") fs-6">
             Agent: @(Model.IsConnectedToAgent ? "Connected" : "Disconnected")
         </span>
@@ -24,7 +24,7 @@
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-primary"
                     @(!Model.IsConnectedToAgent ? "disabled" : "")>
-                + Create New Instance
+                + Add New Instance
             </button>
         </form>
     </div>
