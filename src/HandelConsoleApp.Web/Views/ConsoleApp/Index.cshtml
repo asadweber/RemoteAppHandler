@@ -80,7 +80,7 @@
                             <form asp-action="Stop" asp-route-name="@inst.InstanceName" method="post">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-sm btn-warning"
-                                        @(inst.IsDefault || !inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
+                                        @(!inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
                                     Stop
                                 </button>
                             </form>
