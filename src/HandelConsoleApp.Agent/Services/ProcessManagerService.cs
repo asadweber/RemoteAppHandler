@@ -24,10 +24,67 @@ public sealed class ProcessManagerService(
         get { lock (_lock) { return _managedProcess is { HasExited: false } ? _managedProcess.Id : null; } }
     }
 
+    /// <summary>
+    /// Called at startup to attach to a process that is already running outside agent control.
+    /// No-op if process not found or agent already tracks one.
+    /// </summary>
+    public void TryAttachExisting()
+    {
+        lock (_lock)
+        {
+            if (_managedProcess is { HasExited: false })
+                return;   // already tracking a live process
+
+            var exeFull = Path.GetFullPath(_options.ExecutablePath);
+            var exeName = Path.GetFileNameWithoutExtension(exeFull);
+
+            Process? match = null;
+            try
+            {
+                foreach (var p in Process.GetProcessesByName(exeName))
+                {
+                    try
+                    {
+                        // MainModule requires elevated rights on some OS configs — skip on access denied
+                        var modulePath = p.MainModule?.FileName;
+                        if (modulePath is not null &&
+                            string.Equals(Path.GetFullPath(modulePath), exeFull, StringComparison.OrdinalIgnoreCase))
+                        {
+                            match = p;
+                            break;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        p.Dispose();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "[{Instance}] Could not scan for existing process", instanceName);
+                return;
+            }
+
+            if (match is null)
+                return;
+
+            _intentionalStop     = false;
+            _managedProcess      = match;
+            _managedProcess.EnableRaisingEvents = true;
+            _managedProcess.Exited += OnProcessExited;
+
+            logger.LogInformation("[{Instance}] Attached to existing process (PID {Pid})", instanceName, match.Id);
+        }
+    }
+
     public AgentResponse Start(string requestedBy)
     {
         lock (_lock)
         {
+            // Attach to externally-started process before deciding to launch a new one
+            AttachExistingUnderLock();
+
             if (_managedProcess is { HasExited: false })
             {
                 return new AgentResponse
@@ -48,6 +105,9 @@ public sealed class ProcessManagerService(
     {
         lock (_lock)
         {
+            // Attach to externally-started process so we can stop it
+            AttachExistingUnderLock();
+
             if (_managedProcess is null || _managedProcess.HasExited)
             {
                 return new AgentResponse
@@ -95,13 +155,17 @@ public sealed class ProcessManagerService(
         }
     }
 
-    public AgentResponse GetStatus() => new()
+    public AgentResponse GetStatus()
     {
-        Status    = ResponseStatus.Ok,
-        IsRunning = IsRunning,
-        ProcessId = ProcessId,
-        Message   = IsRunning ? $"Running (PID {ProcessId})" : "Not running"
-    };
+        lock (_lock) { AttachExistingUnderLock(); }
+        return new AgentResponse
+        {
+            Status    = ResponseStatus.Ok,
+            IsRunning = IsRunning,
+            ProcessId = ProcessId,
+            Message   = IsRunning ? $"Running (PID {ProcessId})" : "Not running"
+        };
+    }
 
     // Called on CLR threadpool thread when OS signals process exit.
     private void OnProcessExited(object? sender, EventArgs e)
@@ -136,6 +200,49 @@ public sealed class ProcessManagerService(
                 logger.LogInformation("[{Instance}] Auto-restarted (PID {Pid})", instanceName, result.ProcessId);
             else
                 logger.LogError("[{Instance}] Auto-restart failed: {Msg}", instanceName, result.Message);
+        }
+    }
+
+    // Scans running processes for one whose exe path matches — must be called inside _lock.
+    private void AttachExistingUnderLock()
+    {
+        if (_managedProcess is { HasExited: false })
+            return;
+
+        var exeFull = Path.GetFullPath(_options.ExecutablePath);
+        var exeName = Path.GetFileNameWithoutExtension(exeFull);
+
+        try
+        {
+            foreach (var p in Process.GetProcessesByName(exeName))
+            {
+                try
+                {
+                    var modulePath = p.MainModule?.FileName;
+                    if (modulePath is not null &&
+                        string.Equals(Path.GetFullPath(modulePath), exeFull, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _intentionalStop             = false;
+                        _managedProcess              = p;
+                        _managedProcess.EnableRaisingEvents = true;
+                        _managedProcess.Exited      += OnProcessExited;
+                        logger.LogInformation("[{Instance}] Attached to existing process (PID {Pid})", instanceName, p.Id);
+                        return;
+                    }
+                    else
+                    {
+                        p.Dispose();
+                    }
+                }
+                catch (Exception)
+                {
+                    p.Dispose();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "[{Instance}] Could not scan for existing process", instanceName);
         }
     }
 

@@ -78,19 +78,20 @@ public sealed class InstanceManagerService(
 
     public AgentResponse ListInstances()
     {
-        var managers   = registry.GetAll();
-        var instances  = new List<InstanceInfo>();
+        var instances = new List<InstanceInfo>();
 
         // Default instance first (if folder exists)
         if (!string.IsNullOrEmpty(_opts.DefaultInstancePath) && Directory.Exists(_opts.DefaultInstancePath))
         {
-            managers.TryGetValue(_opts.DefaultInstanceName, out var defMgr);
+            // GetOrCreate + GetStatus triggers TryAttachExisting so externally-started processes are detected
+            var defMgr = registry.GetOrCreate(_opts.DefaultInstanceName);
+            var defStatus = defMgr.GetStatus();
             instances.Add(new InstanceInfo
             {
                 InstanceName = _opts.DefaultInstanceName,
                 FolderPath   = _opts.DefaultInstancePath,
-                IsRunning    = defMgr?.IsRunning ?? false,
-                ProcessId    = defMgr?.ProcessId,
+                IsRunning    = defStatus.IsRunning,
+                ProcessId    = defStatus.ProcessId,
                 IsDefault    = true
             });
         }
@@ -104,13 +105,15 @@ public sealed class InstanceManagerService(
             foreach (var folder in folders.OrderBy(f => f))
             {
                 var name = Path.GetFileName(folder);
-                managers.TryGetValue(name, out var m);
+                // GetOrCreate ensures a manager exists and attaches to any externally-started process
+                var mgr = registry.GetOrCreate(name);
+                var status = mgr.GetStatus();
                 instances.Add(new InstanceInfo
                 {
                     InstanceName = name,
                     FolderPath   = folder,
-                    IsRunning    = m?.IsRunning ?? false,
-                    ProcessId    = m?.ProcessId,
+                    IsRunning    = status.IsRunning,
+                    ProcessId    = status.ProcessId,
                     IsDefault    = false
                 });
             }
