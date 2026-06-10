@@ -8,8 +8,7 @@ namespace HandelApp.Web.Controllers;
 public sealed class AppsController(
     IRemoteAgentService agentService,
     ILogger<AppsController> logger) : Controller
-{
-    [HttpGet("/Apps")]
+{    
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var response = await SendSafeAsync(new AgentCommand { Command = CommandType.ListApps }, ct);
