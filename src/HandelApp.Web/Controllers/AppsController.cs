@@ -40,7 +40,7 @@ public sealed class AppsController(
 
     /// <summary>
     /// Registers a new application with the agent.
-    /// Normalises the <see cref="RegisterAppInputModel.AppId"/> to lowercase and trims
+    /// Normalizes the <see cref="RegisterAppInputModel.AppId"/> to lowercase and trims
     /// all string fields before sending them to the agent.
     /// </summary>
     /// <param name="input">Form-bound registration data.</param>
@@ -72,7 +72,7 @@ public sealed class AppsController(
     }
 
     /// <summary>
-    /// Unregisters an application from the agent. The agent will refuse if any instances
+    /// Unregistered an application from the agent. The agent will refuse if any instances
     /// are still running.
     /// </summary>
     /// <param name="appId">App identifier from the route.</param>
