@@ -91,28 +91,17 @@
                         <td><code>@app.InstancesRootPath</code></td>
                         <td><code>@app.ExecutableName</code></td>
                         <td>
-                            <div class="btn-group btn-group-sm" role="group">
+                            <div class="btn-group btn-group-sm">
                                 <a href="/HandelApp/@app.AppId"
-                                   class="btn btn-outline-primary">
-                                    Manage
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-gear"></i> Manage
                                 </a>
 
-                                <form asp-controller="Apps"
-                                      asp-action="Unregister"
-                                      asp-route-appId="@app.AppId"
-                                      method="post"
-                                      class="d-inline"
-                                      data-action-label="Unregistering @app.AppId…"
-                                      data-confirm="Unregister @app.DisplayName? All instance management will stop.">
-
-                                    @Html.AntiForgeryToken()
-
-                                    <button type="submit"
-                                            class="btn btn-danger"
-                                            disabled="@(!Model.IsConnectedToAgent)">
-                                        Unregister
-                                    </button>
-                                </form>
+                                <button type="submit"
+                                        class="btn btn-sm btn-danger"
+                                        disabled="@(!Model.IsConnectedToAgent)">
+                                    <i class="bi bi-trash"></i> Unregister
+                                </button>
                             </div>
                         </td>
                     </tr>
