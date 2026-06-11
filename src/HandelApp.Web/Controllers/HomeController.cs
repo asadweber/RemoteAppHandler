@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using HandelApp.Web.Models;
 
@@ -8,6 +9,7 @@ namespace HandelApp.Web.Controllers;
 /// Standard ASP.NET Core MVC controller for application-level pages (home, privacy, error).
 /// Not involved in agent communication.
 /// </summary>
+[Authorize]
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
@@ -36,6 +38,7 @@ public class HomeController : Controller
     /// Renders the error page. Response caching is disabled so error pages are never
     /// served stale from a proxy or browser cache.
     /// </summary>
+    [AllowAnonymous]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

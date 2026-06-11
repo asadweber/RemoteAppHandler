@@ -1,6 +1,7 @@
 using HandelApp.Shared.Protocol;
 using HandelApp.Web.Models;
 using HandelApp.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HandelApp.Web.Controllers;
@@ -20,9 +21,10 @@ namespace HandelApp.Web.Controllers;
 /// "agent unreachable" message) when the agent is offline.
 /// </para>
 /// </remarks>
-public sealed class ConsoleAppController(
+[Authorize]
+public sealed class HandelAppController(
     IRemoteAgentService agentService,
-    ILogger<ConsoleAppController> logger) : Controller
+    ILogger<HandelAppController> logger) : Controller
 {
     /// <summary>
     /// Displays the instance list view for a specific app.

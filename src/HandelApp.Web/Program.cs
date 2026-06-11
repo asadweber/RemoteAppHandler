@@ -1,31 +1,27 @@
-using HandelApp.Web.Authorization;
 using HandelApp.Web.Services;
-using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Windows Authentication (Negotiate = NTLM / Kerberos) ───────────────────
-builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
-    .AddNegotiate();
+// ── Cookie Authentication ─────────────────────────────────────────────────────
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath        = "/Account/Login";
+        options.LogoutPath       = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/Login";
+        options.ExpireTimeSpan   = TimeSpan.FromMinutes(10);
+        options.SlidingExpiration = true;
+    });
 
 builder.Services.AddAuthorization(options =>
 {
-    options.FallbackPolicy = options.DefaultPolicy;
-
-    var allowedGroups = builder.Configuration
-        .GetSection("Authorization:AllowedGroups").Get<string[]>() ?? [];
-    var readOnlyGroups = builder.Configuration
-        .GetSection("Authorization:ReadOnlyGroups").Get<string[]>() ?? [];
-
-    //options.AddPolicy("CanControlApp", policy =>
-    //    policy.Requirements.Add(new AdGroupRequirement(allowedGroups)));
-
-    //options.AddPolicy("CanViewStatus", policy =>
-    //    policy.Requirements.Add(new AdGroupRequirement([.. allowedGroups, .. readOnlyGroups])));
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
 });
 
-builder.Services.AddSingleton<IAuthorizationHandler, AdGroupHandler>();
 
 // ── Remote Agent ─────────────────────────────────────────────────────────────
 builder.Services.Configure<RemoteAgentOptions>(

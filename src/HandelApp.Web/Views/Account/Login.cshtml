@@ -1,0 +1,101 @@
+@{
+    ViewData["Title"] = "Login";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Handel App Agent</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+        .login-card {
+            max-width: 420px;
+            margin: 100px auto;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+        }
+        .login-card .card-header {
+            background: #1a1a2e;
+            color: #fff;
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+            padding: 28px 24px 20px;
+        }
+        .login-card .card-header h4 {
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .login-card .card-header p {
+            margin: 6px 0 0;
+            font-size: 0.85rem;
+            opacity: 0.75;
+        }
+        .login-card .card-body {
+            padding: 32px 28px;
+        }
+        .btn-login {
+            background: #1a1a2e;
+            border-color: #1a1a2e;
+            color: #fff;
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border-radius: 6px;
+        }
+        .btn-login:hover {
+            background: #16213e;
+            border-color: #16213e;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card login-card">
+            <div class="card-header">
+                <h4>Handel App Agent</h4>
+                <p>Sign in to continue</p>
+            </div>
+            <div class="card-body">
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger py-2">
+                        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <span>@error.ErrorMessage</span>
+                        }
+                    </div>
+                }
+                <form method="post" asp-action="Login" asp-controller="Account">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-semibold">Username</label>
+                        <input type="text" id="username" name="username" class="form-control"
+                               placeholder="Enter username" autocomplete="username" autofocus required />
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label fw-semibold">Password</label>
+                        <input type="password" id="password" name="password" class="form-control"
+                               placeholder="Enter password" autocomplete="current-password" required />
+                    </div>
+
+                    <button type="submit" class="btn btn-login">Sign In</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

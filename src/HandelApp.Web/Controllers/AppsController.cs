@@ -12,7 +12,7 @@ namespace HandelApp.Web.Controllers;
 /// </summary>
 /// <remarks>
 /// This is the default controller (see <c>Program.cs</c> route configuration).
-/// Like <see cref="ConsoleAppController"/>, all agent calls go through
+/// Like <see cref="HandelAppController"/>, all agent calls go through
 /// <see cref="SendSafeAsync"/> so the list view still renders when the agent is offline.
 /// </remarks>
 public sealed class AppsController(
