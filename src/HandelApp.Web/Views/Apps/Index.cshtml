@@ -70,7 +70,7 @@
     }
     else
     {
-        <table class="table table-bordered table-hover align-middle">
+        <table class="table table-bordered align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>App ID</th>
@@ -90,18 +90,30 @@
                         <td><code>@app.DefaultInstancePath</code></td>
                         <td><code>@app.InstancesRootPath</code></td>
                         <td><code>@app.ExecutableName</code></td>
-                        <td class="d-flex gap-1">
-                            <a href="/ConsoleApp/@app.AppId" class="btn btn-sm btn-outline-primary">Manage</a>
-                            <form asp-controller="Apps" asp-action="Unregister" asp-route-appId="@app.AppId"
-                                  method="post"
-                                  data-action-label="Unregistering @app.AppId…"
-                                  data-confirm="Unregister @app.DisplayName? All instance management will stop.">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-danger"
-                                        @(!Model.IsConnectedToAgent ? "disabled" : "")>
-                                    Unregister
-                                </button>
-                            </form>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="/HandelApp/@app.AppId"
+                                   class="btn btn-outline-primary">
+                                    Manage
+                                </a>
+
+                                <form asp-controller="Apps"
+                                      asp-action="Unregister"
+                                      asp-route-appId="@app.AppId"
+                                      method="post"
+                                      class="d-inline"
+                                      data-action-label="Unregistering @app.AppId…"
+                                      data-confirm="Unregister @app.DisplayName? All instance management will stop.">
+
+                                    @Html.AntiForgeryToken()
+
+                                    <button type="submit"
+                                            class="btn btn-danger"
+                                            disabled="@(!Model.IsConnectedToAgent)">
+                                        Unregister
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 }

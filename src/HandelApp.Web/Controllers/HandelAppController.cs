@@ -31,7 +31,7 @@ public sealed class HandelAppController(
     /// </summary>
     /// <param name="appId">App identifier from the route.</param>
     /// <param name="ct">Request cancellation token.</param>
-    [HttpGet("/ConsoleApp/{appId}")]
+    [HttpGet("/HandelApp/{appId}")]
     public async Task<IActionResult> Index(string appId, CancellationToken ct)
     {
         var response = await SendSafeAsync(
@@ -54,7 +54,7 @@ public sealed class HandelAppController(
     /// </summary>
     /// <param name="appId">App identifier from the route.</param>
     /// <param name="ct">Request cancellation token.</param>
-    [HttpPost("/ConsoleApp/{appId}/Create")]
+    [HttpPost("/HandelApp/{appId}/Create")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(string appId, CancellationToken ct)
     {
@@ -91,7 +91,7 @@ public sealed class HandelAppController(
     /// <param name="appId">App identifier from the route.</param>
     /// <param name="number">Instance number from the route.</param>
     /// <param name="ct">Request cancellation token.</param>
-    [HttpPost("/ConsoleApp/{appId}/Delete/{number:int}")]
+    [HttpPost("/HandelApp/{appId}/Delete/{number:int}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string appId, int number, CancellationToken ct)
     {
@@ -113,7 +113,7 @@ public sealed class HandelAppController(
     /// <param name="appId">App identifier from the route.</param>
     /// <param name="name">Instance name from the route (e.g. "Default" or "Instance-2").</param>
     /// <param name="ct">Request cancellation token.</param>
-    [HttpPost("/ConsoleApp/{appId}/Start/{name}")]
+    [HttpPost("/HandelApp/{appId}/Start/{name}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Start(string appId, string name, CancellationToken ct)
     {
@@ -136,7 +136,7 @@ public sealed class HandelAppController(
     /// <param name="appId">App identifier from the route.</param>
     /// <param name="name">Instance name from the route.</param>
     /// <param name="ct">Request cancellation token.</param>
-    [HttpPost("/ConsoleApp/{appId}/Stop/{name}")]
+    [HttpPost("/HandelApp/{appId}/Stop/{name}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Stop(string appId, string name, CancellationToken ct)
     {
@@ -159,7 +159,7 @@ public sealed class HandelAppController(
     /// </summary>
     /// <param name="appId">App identifier from the route.</param>
     /// <param name="ct">Request cancellation token.</param>
-    [HttpGet("/ConsoleApp/{appId}/StatusJson")]
+    [HttpGet("/HandelApp/{appId}/StatusJson")]
     public async Task<IActionResult> StatusJson(string appId, CancellationToken ct)
     {
         var response = await SendSafeAsync(
