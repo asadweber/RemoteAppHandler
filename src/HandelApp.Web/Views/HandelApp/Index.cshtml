@@ -29,16 +29,19 @@
             @Model.ResultMessage            
         </div>
     }
+    @if (User.IsInRole("Admin"))
+    {
 
-    <div class="mb-3">
-        <form asp-action="Create" asp-route-appId="@appId" method="post" data-action-label="Creating new instance…">
-            @Html.AntiForgeryToken()
-            <button id="btn-create" type="submit" class="btn btn-primary"
-                    @(!Model.IsConnectedToAgent ? "disabled" : "")>
-                + Add New Instance
-            </button>
-        </form>
-    </div>
+        <div class="mb-3">
+            <form asp-action="Create" asp-route-appId="@appId" method="post" data-action-label="Creating new instance…">
+                @Html.AntiForgeryToken()
+                <button id="btn-create" type="submit" class="btn btn-primary"
+                @(!Model.IsConnectedToAgent ? "disabled" : "")>
+                    + Add New Instance
+                </button>
+            </form>
+        </div>
+    }
 
     @if (Model.Instances.Count == 0)
     {
@@ -97,16 +100,19 @@
                                     Stop
                                 </button>
                             </form>
-                            <form asp-action="Delete" asp-route-appId="@appId" asp-route-number="@num"
-                                  method="post"
-                                  data-action-label="Deleting @inst.InstanceName…"
-                                  data-confirm="Delete @inst.InstanceName?">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-danger" data-btn="delete"
-                                        @(inst.IsDefault || inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
-                                    Delete
-                                </button>
-                            </form>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <form asp-action="Delete" asp-route-appId="@appId" asp-route-number="@num"
+                                method="post"
+                                data-action-label="Deleting @inst.InstanceName…"
+                                data-confirm="Delete @inst.InstanceName?">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-danger" data-btn="delete"
+                                    @(inst.IsDefault || inst.IsRunning || !Model.IsConnectedToAgent ? "disabled" : "")>
+                                        Delete
+                                    </button>
+                                </form>
+                            }
                         </td>
                     </tr>
                 }

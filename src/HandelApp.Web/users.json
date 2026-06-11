@@ -9,7 +9,13 @@
       },
       {
         "Username": "operator",
-        "PasswordHash": "AQAAAAIAAYagAAAAEBheUZENCefoxUEZVDMQloWhmRb83D2UTIsTW9Zkohp8OtpCZduzOFD7Gl+EhXdetg==",
+        "PasswordHash": "AQAAAAIAAYagAAAAEBheUZENCefoxUEZVDMQloWhmRb83D2UTIsTW9Zkohp8OtpCZduzOFD7Gl\u002BEhXdetg==",
+        "Role": "Operator",
+        "IsActive": true
+      },
+      {
+        "Username": "test1",
+        "PasswordHash": "AQAAAAIAAYagAAAAEEl7T/8onMIVdwPObD4Wsv2EDxwgtdOPTOwhc/A7cxk0rimq1gRmyvbxHTi7beaPpA==",
         "Role": "Operator",
         "IsActive": true
       }

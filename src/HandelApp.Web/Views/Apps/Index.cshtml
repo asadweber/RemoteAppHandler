@@ -26,43 +26,47 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Register New App</div>
+            <div class="card-body">
+                <form asp-controller="Apps" asp-action="Register" method="post" data-action-label="Registering app…">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-2">
+                            <input name="AppId" class="form-control" placeholder="app-id (slug)" required />
+                        </div>
+                        <div class="col-md-2">
+                            <input name="DisplayName" class="form-control" placeholder="Display Name" required />
+                        </div>
+                        <div class="col-md-3">
+                            <input name="DefaultInstancePath" class="form-control" placeholder="Default path (e.g. C:\Apps\MyApp\Default)" required />
+                        </div>
+                        <div class="col-md-3">
+                            <input name="InstancesRootPath" class="form-control" placeholder="Instances root (e.g. C:\Apps\MyApp)" required />
+                        </div>
+                        <div class="col-md-2">
+                            <input name="ExecutableName" class="form-control" placeholder="Exe (e.g. App.exe)" required />
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-2">
+                            <input name="InstanceNamePrefix" class="form-control" value="Instance" placeholder="Prefix" />
+                        </div>
+                        <div class="col-md-2">
 
-    <div class="card mb-4">
-        <div class="card-header fw-semibold">Register New App</div>
-        <div class="card-body">
-            <form asp-controller="Apps" asp-action="Register" method="post" data-action-label="Registering app…">
-                @Html.AntiForgeryToken()
-                <div class="row g-2 mb-2">
-                    <div class="col-md-2">
-                        <input name="AppId" class="form-control" placeholder="app-id (slug)" required />
+                            <button type="submit" class="btn btn-primary"
+                            @(!Model.IsConnectedToAgent ? "disabled" : "")>
+                                Register
+                            </button>
+
+                        </div>
                     </div>
-                    <div class="col-md-2">
-                        <input name="DisplayName" class="form-control" placeholder="Display Name" required />
-                    </div>
-                    <div class="col-md-3">
-                        <input name="DefaultInstancePath" class="form-control" placeholder="Default path (e.g. C:\Apps\MyApp\Default)" required />
-                    </div>
-                    <div class="col-md-3">
-                        <input name="InstancesRootPath" class="form-control" placeholder="Instances root (e.g. C:\Apps\MyApp)" required />
-                    </div>
-                    <div class="col-md-2">
-                        <input name="ExecutableName" class="form-control" placeholder="Exe (e.g. App.exe)" required />
-                    </div>
-                </div>
-                <div class="row g-2">
-                    <div class="col-md-2">
-                        <input name="InstanceNamePrefix" class="form-control" value="Instance" placeholder="Prefix" />
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary"
-                                @(!Model.IsConnectedToAgent ? "disabled" : "")>
-                            Register
-                        </button>
-                    </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
+    }
 
     @if (Model.Apps.Count == 0)
     {
@@ -96,12 +100,14 @@
                                    class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-gear"></i> Manage
                                 </a>
-
-                                <button type="submit"
-                                        class="btn btn-sm btn-danger"
-                                        disabled="@(!Model.IsConnectedToAgent)">
-                                    <i class="bi bi-trash"></i> Unregister
-                                </button>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <button type="submit"
+                                    class="btn btn-sm btn-danger"
+                                    disabled="@(!Model.IsConnectedToAgent)">
+                                        <i class="bi bi-trash"></i> Unregister
+                                    </button>
+                                }
                             </div>
                         </td>
                     </tr>
