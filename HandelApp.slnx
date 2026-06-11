@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/HandelApp.Agent/HandelApp.Agent.csproj" />
+    <Project Path="src/HandelApp.PasswordTool/HandelApp.PasswordTool.csproj" />
     <Project Path="src/HandelApp.Shared/HandelApp.Shared.csproj" />
     <Project Path="src/HandelApp.Web/HandelApp.Web.csproj" />
   </Folder>
