@@ -16,12 +16,12 @@ public sealed class ProcessManagerService(
 
     public bool IsRunning
     {
-        get { lock (_lock) { return _managedProcess is { HasExited: false }; } }
+        get { lock (_lock) { return _managedProcess is not null && !HasExitedSafe(_managedProcess); } }
     }
 
     public int? ProcessId
     {
-        get { lock (_lock) { return _managedProcess is { HasExited: false } ? _managedProcess.Id : null; } }
+        get { lock (_lock) { return !HasExitedSafe(_managedProcess) ? _managedProcess!.Id : null; } }
     }
 
     /// <summary>
@@ -32,7 +32,7 @@ public sealed class ProcessManagerService(
     {
         lock (_lock)
         {
-            if (_managedProcess is { HasExited: false })
+            if (_managedProcess is not null && !HasExitedSafe(_managedProcess))
                 return;   // already tracking a live process
 
             var exeFull = Path.GetFullPath(_options.ExecutablePath);
@@ -86,7 +86,7 @@ public sealed class ProcessManagerService(
             AttachExistingUnderLock();
             KillDuplicatesUnderLock();
 
-            if (_managedProcess is { HasExited: false })
+            if (_managedProcess is not null && !HasExitedSafe(_managedProcess))
             {
                 return new AgentResponse
                 {
@@ -110,7 +110,7 @@ public sealed class ProcessManagerService(
             AttachExistingUnderLock();
             KillDuplicatesUnderLock();
 
-            if (_managedProcess is null || _managedProcess.HasExited)
+            if (HasExitedSafe(_managedProcess))
             {
                 return new AgentResponse
                 {
@@ -198,7 +198,7 @@ public sealed class ProcessManagerService(
         lock (_lock)
         {
             // Double-check: someone may have called Start() or Stop() during the delay
-            if (_intentionalStop || _managedProcess is { HasExited: false })
+            if (_intentionalStop || !HasExitedSafe(_managedProcess))
                 return;
 
             var result = StartInternal("auto-restart");
@@ -212,7 +212,7 @@ public sealed class ProcessManagerService(
     // Scans running processes for one whose exe path matches — must be called inside _lock.
     private void AttachExistingUnderLock()
     {
-        if (_managedProcess is { HasExited: false })
+        if (_managedProcess is not null && !HasExitedSafe(_managedProcess))
             return;
 
         var exeFull = Path.GetFullPath(_options.ExecutablePath);
@@ -256,7 +256,7 @@ public sealed class ProcessManagerService(
     // Must be called inside _lock.
     private void KillDuplicatesUnderLock()
     {
-        if (_managedProcess is null || _managedProcess.HasExited)
+        if (HasExitedSafe(_managedProcess))
             return;
 
         var exeFull  = Path.GetFullPath(_options.ExecutablePath);
@@ -293,6 +293,14 @@ public sealed class ProcessManagerService(
         {
             logger.LogDebug(ex, "[{Instance}] Error scanning for duplicates", instanceName);
         }
+    }
+
+    // Process.HasExited throws InvalidOperationException when the handle is released after WaitForExit.
+    private static bool HasExitedSafe(Process? p)
+    {
+        if (p is null) return true;
+        try { return p.HasExited; }
+        catch (InvalidOperationException) { return true; }
     }
 
     // Must be called inside _lock.

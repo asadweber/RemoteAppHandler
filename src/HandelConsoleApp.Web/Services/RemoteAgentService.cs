@@ -60,6 +60,10 @@ public sealed class RemoteAgentService : IRemoteAgentService, IAsyncDisposable
 
     public async Task<AgentResponse> SendCommandAsync(AgentCommand command, CancellationToken ct = default)
     {
+        // Reconnect outside the send-lock to avoid deadlock (EnsureConnectedAsync acquires the same lock).
+        if (!_isConnected || _tcpClient?.Connected != true)
+            await EnsureConnectedAsync(ct);
+
         await _lock.WaitAsync(ct);
         try
         {
