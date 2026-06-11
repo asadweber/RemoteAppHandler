@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -9,6 +10,8 @@ namespace HandelApp.Web.Controllers;
 [AllowAnonymous]
 public class AccountController(IConfiguration configuration) : Controller
 {
+    private static readonly PasswordHasher<string> _hasher = new();
+
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
     {
@@ -26,10 +29,13 @@ public class AccountController(IConfiguration configuration) : Controller
         var users = configuration.GetSection("Auth:Users").Get<AuthUser[]>() ?? [];
 
         var user = users.FirstOrDefault(u =>
-            string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase) &&
-            u.Password == password);
+            string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
 
-        if (user is null)
+        var valid = user is not null &&
+            _hasher.VerifyHashedPassword(user.Username, user.PasswordHash, password)
+                != PasswordVerificationResult.Failed;
+
+        if (!valid)
         {
             ModelState.AddModelError(string.Empty, "Invalid username or password.");
             ViewData["ReturnUrl"] = returnUrl;
@@ -38,7 +44,7 @@ public class AccountController(IConfiguration configuration) : Controller
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Name, user!.Username),
             new(ClaimTypes.Role, user.Role),
         };
 
@@ -64,5 +70,5 @@ public class AccountController(IConfiguration configuration) : Controller
         return RedirectToAction(nameof(Login));
     }
 
-    private sealed record AuthUser(string Username, string Password, string Role);
+    private sealed record AuthUser(string Username, string PasswordHash, string Role);
 }
