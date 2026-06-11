@@ -102,11 +102,16 @@
                                 </a>
                                 @if (User.IsInRole("Admin"))
                                 {
-                                    <button type="submit"
-                                    class="btn btn-sm btn-danger"
-                                    disabled="@(!Model.IsConnectedToAgent)">
-                                        <i class="bi bi-trash"></i> Unregister
-                                    </button>
+                                    <form asp-controller="Apps" asp-action="Unregister" asp-route-appId="@app.AppId"
+                                          method="post"
+                                          data-action-label="Unregistering @app.AppId…"
+                                          data-confirm="Unregister @app.DisplayName? All instance management will stop.">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                            @(!Model.IsConnectedToAgent ? "disabled" : "")>
+                                            Unregister
+                                        </button>
+                                    </form>
                                 }
                             </div>
                         </td>
