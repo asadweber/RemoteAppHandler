@@ -26,8 +26,7 @@
     @if (Model.ResultMessage is not null)
     {
         <div class="alert @(Model.IsError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
-            @Model.ResultMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            @Model.ResultMessage            
         </div>
     }
 
