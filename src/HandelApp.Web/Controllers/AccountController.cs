@@ -1,3 +1,4 @@
+using HandelApp.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -119,10 +120,9 @@ public class AccountController(IConfiguration configuration, IWebHostEnvironment
         return RedirectToAction(nameof(ChangePassword));
     }
 
-    // Writes the new hash back to appsettings.json and reloads configuration.
     private void SavePasswordHash(string username, string newHash)
     {
-        var path = Path.Combine(env.ContentRootPath, "appsettings.json");
+        var path = Path.Combine(env.ContentRootPath, UserDbFile.FileName);
         var json = JsonNode.Parse(System.IO.File.ReadAllText(path))!;
 
         var usersArray = json["Auth"]?["Users"]?.AsArray();

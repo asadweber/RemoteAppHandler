@@ -1,8 +1,11 @@
+using HandelApp.Web.Infrastructure;
 using HandelApp.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddJsonFile(UserDbFile.FileName, optional: false, reloadOnChange: true);
 
 // ── Cookie Authentication ─────────────────────────────────────────────────────
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

@@ -1,3 +1,4 @@
+using HandelApp.Web.Infrastructure;
 using HandelApp.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -130,7 +131,7 @@ public class UserManagementController(
 
     private void SaveUsers(List<UserEntry> users)
     {
-        var path = Path.Combine(env.ContentRootPath, "appsettings.json");
+        var path = Path.Combine(env.ContentRootPath, UserDbFile.FileName);
         var json = JsonNode.Parse(System.IO.File.ReadAllText(path))!;
 
         json["Auth"]!["Users"] = JsonNode.Parse(
