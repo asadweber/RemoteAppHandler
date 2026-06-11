@@ -3,18 +3,51 @@ using Microsoft.Extensions.Options;
 
 namespace HandelApp.Agent.Services;
 
+/// <summary>
+/// Thread-safe factory and cache of <see cref="ProcessManagerService"/> instances,
+/// one per named instance of a single registered application.
+/// </summary>
+/// <remarks>
+/// Managers are created lazily on first access and reused for all subsequent calls,
+/// ensuring that a single <see cref="ProcessManagerService"/> holds the authoritative
+/// process handle for each instance.
+/// <para>
+/// Security: instance names are validated against a strict allowlist regex before any
+/// filesystem path is constructed, preventing directory traversal via crafted names.
+/// The resolved executable path is also checked with <see cref="InstanceManagerService.IsContained"/>
+/// to ensure it stays within the instance folder.
+/// </para>
+/// </remarks>
 public sealed class ProcessManagerRegistry(
     IOptions<ConsoleAppOptions> options,
     ILoggerFactory loggerFactory)
 {
     private readonly ConsoleAppOptions _opts = options.Value;
+
+    /// <summary>
+    /// Cached managers keyed by instance name (case-insensitive).
+    /// </summary>
     private readonly Dictionary<string, ProcessManagerService> _managers = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
 
+    /// <summary>
+    /// Returns the <see cref="ProcessManagerService"/> for the given instance name,
+    /// creating and caching a new one if it does not yet exist.
+    /// </summary>
+    /// <param name="instanceName">
+    /// Either <see cref="ConsoleAppOptions.DefaultInstanceName"/> (e.g. "Default") or
+    /// a numbered name matching the pattern <c>{InstanceNamePrefix}-\d+</c>.
+    /// </param>
+    /// <returns>The cached or newly created manager for the instance.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="instanceName"/> does not match the required format,
+    /// or when the resolved paths escape the expected directories.
+    /// </exception>
     public ProcessManagerService GetOrCreate(string instanceName)
     {
         bool isDefault = string.Equals(instanceName, _opts.DefaultInstanceName, StringComparison.OrdinalIgnoreCase);
 
+        // Default instance bypasses name format validation — its name is configuration-controlled.
         if (!isDefault)
             ValidateInstanceName(instanceName);
 
@@ -43,6 +76,8 @@ public sealed class ProcessManagerRegistry(
             if (!InstanceManagerService.IsContained(exePath, instancePath, out var exeReason))
                 throw new ArgumentException(exeReason, nameof(instanceName));
 
+            // Build per-instance options — working directory and exe path are instance-specific,
+            // while arguments and grace period are shared from the app-level configuration.
             var instanceOpts = new ConsoleAppOptions
             {
                 ExecutablePath        = exePath,
@@ -61,12 +96,24 @@ public sealed class ProcessManagerRegistry(
         }
     }
 
+    /// <summary>
+    /// Returns a snapshot of all currently cached managers.
+    /// Safe to iterate without holding the registry lock.
+    /// </summary>
+    /// <returns>Dictionary copy keyed by instance name.</returns>
     public IReadOnlyDictionary<string, ProcessManagerService> GetAll()
     {
         lock (_lock) { return new Dictionary<string, ProcessManagerService>(_managers); }
     }
 
     // Strict allowlist: only "Prefix-N" where N is one or more digits
+    /// <summary>
+    /// Validates that <paramref name="instanceName"/> matches the pattern
+    /// <c>{InstanceNamePrefix}-\d+</c>, ruling out names that could form
+    /// path-traversal sequences (e.g. <c>Instance-../secret</c>).
+    /// </summary>
+    /// <param name="instanceName">Name to validate.</param>
+    /// <exception cref="ArgumentException">Thrown when the name does not match the expected format.</exception>
     private void ValidateInstanceName(string instanceName)
     {
         var pattern = $@"^{Regex.Escape(_opts.InstanceNamePrefix)}-\d+$";

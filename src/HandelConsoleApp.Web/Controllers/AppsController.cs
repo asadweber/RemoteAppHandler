@@ -5,10 +5,24 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HandelApp.Web.Controllers;
 
+/// <summary>
+/// MVC controller for managing registered applications.
+/// Provides the landing page that lists all apps and POST endpoints for registering
+/// and unregistering them with the remote agent.
+/// </summary>
+/// <remarks>
+/// This is the default controller (see <c>Program.cs</c> route configuration).
+/// Like <see cref="ConsoleAppController"/>, all agent calls go through
+/// <see cref="SendSafeAsync"/> so the list view still renders when the agent is offline.
+/// </remarks>
 public sealed class AppsController(
     IRemoteAgentService agentService,
     ILogger<AppsController> logger) : Controller
-{    
+{
+    /// <summary>
+    /// Displays the registered-apps list view.
+    /// </summary>
+    /// <param name="ct">Request cancellation token.</param>
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var response = await SendSafeAsync(new AgentCommand { Command = CommandType.ListApps }, ct);
@@ -22,6 +36,13 @@ public sealed class AppsController(
         return View(vm);
     }
 
+    /// <summary>
+    /// Registers a new application with the agent.
+    /// Normalises the <see cref="RegisterAppInputModel.AppId"/> to lowercase and trims
+    /// all string fields before sending them to the agent.
+    /// </summary>
+    /// <param name="input">Form-bound registration data.</param>
+    /// <param name="ct">Request cancellation token.</param>
     [HttpPost("/Apps/Register")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterAppInputModel input, CancellationToken ct)
@@ -33,6 +54,7 @@ public sealed class AppsController(
             DefaultInstancePath = input.DefaultInstancePath.Trim(),
             InstancesRootPath   = input.InstancesRootPath.Trim(),
             ExecutableName      = input.ExecutableName.Trim(),
+            // Fall back to "Instance" when the user leaves the prefix blank.
             InstanceNamePrefix  = string.IsNullOrWhiteSpace(input.InstanceNamePrefix) ? "Instance" : input.InstanceNamePrefix.Trim()
         };
 
@@ -47,6 +69,12 @@ public sealed class AppsController(
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>
+    /// Unregisters an application from the agent. The agent will refuse if any instances
+    /// are still running.
+    /// </summary>
+    /// <param name="appId">App identifier from the route.</param>
+    /// <param name="ct">Request cancellation token.</param>
     [HttpPost("/Apps/Unregister/{appId}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Unregister(string appId, CancellationToken ct)
@@ -62,6 +90,10 @@ public sealed class AppsController(
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>
+    /// Sends a command to the agent and swallows any exception, returning <see langword="null"/>
+    /// so the calling action can still render a degraded view when the agent is offline.
+    /// </summary>
     private async Task<AgentResponse?> SendSafeAsync(AgentCommand cmd, CancellationToken ct)
     {
         try { return await agentService.SendCommandAsync(cmd, ct); }
@@ -72,6 +104,11 @@ public sealed class AppsController(
         }
     }
 
+    /// <summary>
+    /// Writes the command result into TempData for display after the Post-Redirect-Get.
+    /// </summary>
+    /// <param name="response">Agent response, or <see langword="null"/> when unreachable.</param>
+    /// <param name="successDefault">Fallback message for a successful response with no message text.</param>
     private void SetResult(AgentResponse? response, string successDefault)
     {
         if (response is null)
