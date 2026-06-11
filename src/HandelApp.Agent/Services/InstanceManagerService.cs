@@ -9,20 +9,20 @@ namespace HandelApp.Agent.Services;
 /// and enumerating all known instances with their runtime status.
 /// </summary>
 /// <remarks>
-/// Each instance is a directory clone of <see cref="ConsoleAppOptions.DefaultInstancePath"/>.
+/// Each instance is a directory clone of <see cref="AppOptions.DefaultInstancePath"/>.
 /// Numbered instances follow the naming convention <c>{InstanceNamePrefix}-{number}</c>
-/// and must reside within <see cref="ConsoleAppOptions.InstancesRootPath"/>.
+/// and must reside within <see cref="AppOptions.InstancesRootPath"/>.
 /// <para>
 /// Security: all path operations are validated by <see cref="IsContained"/> to prevent
 /// directory traversal attacks via crafted instance numbers or names.
 /// </para>
 /// </remarks>
 public sealed class InstanceManagerService(
-    IOptions<ConsoleAppOptions> options,
+    IOptions<AppOptions> options,
     ProcessManagerRegistry registry,
     ILogger<InstanceManagerService> logger)
 {
-    private readonly ConsoleAppOptions _opts = options.Value;
+    private readonly AppOptions _opts = options.Value;
 
     /// <summary>
     /// Creates a new numbered instance by recursively copying the default instance directory.

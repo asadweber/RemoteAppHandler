@@ -16,11 +16,11 @@ namespace HandelApp.Agent.Services;
 /// mutating shared state.
 /// </remarks>
 public sealed class ProcessManagerService(
-    IOptions<ConsoleAppOptions> options,
+    IOptions<AppOptions> options,
     ILogger<ProcessManagerService> logger,
     string instanceName)
 {
-    private readonly ConsoleAppOptions _options = options.Value;
+    private readonly AppOptions _options = options.Value;
     private Process? _managedProcess;
     private readonly object _lock = new();
     private bool _intentionalStop;   // true while Stop() is in progress — suppresses auto-restart
@@ -138,7 +138,7 @@ public sealed class ProcessManagerService(
     /// <summary>
     /// Stops the managed process gracefully via <see cref="Process.CloseMainWindow"/>, then
     /// force-kills the entire process tree if the process does not exit within
-    /// <see cref="ConsoleAppOptions.ShutdownGracePeriodMs"/> milliseconds.
+    /// <see cref="AppOptions.ShutdownGracePeriodMs"/> milliseconds.
     /// </summary>
     /// <param name="requestedBy">Identity of the caller, used for audit logging.</param>
     /// <returns>

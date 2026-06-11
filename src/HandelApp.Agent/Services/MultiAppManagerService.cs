@@ -233,7 +233,7 @@ public sealed class MultiAppManagerService(
 
     /// <summary>
     /// Returns the existing scope for an app, or creates and caches a new one.
-    /// Building the scope involves constructing <see cref="ConsoleAppOptions"/> from the
+    /// Building the scope involves constructing <see cref="AppOptions"/> from the
     /// <see cref="AppDefinition"/> and wiring up the <see cref="ProcessManagerRegistry"/>
     /// and <see cref="InstanceManagerService"/> together.
     /// </summary>
@@ -247,10 +247,10 @@ public sealed class MultiAppManagerService(
 
             var opts = BuildOptions(def);
             var registry = new ProcessManagerRegistry(
-                new OptionsWrapper<ConsoleAppOptions>(opts),
+                new OptionsWrapper<AppOptions>(opts),
                 loggerFactory);
             var manager = new InstanceManagerService(
-                new OptionsWrapper<ConsoleAppOptions>(opts),
+                new OptionsWrapper<AppOptions>(opts),
                 registry,
                 loggerFactory.CreateLogger<InstanceManagerService>());
 
@@ -262,11 +262,11 @@ public sealed class MultiAppManagerService(
 
     /// <summary>
     /// Converts an <see cref="AppDefinition"/> (the persistent, user-facing model) into
-    /// <see cref="ConsoleAppOptions"/> (the runtime configuration consumed by services).
+    /// <see cref="AppOptions"/> (the runtime configuration consumed by services).
     /// The executable path is left empty here because <see cref="ProcessManagerRegistry"/>
     /// resolves per-instance exe paths at <c>GetOrCreate</c> time.
     /// </summary>
-    private static ConsoleAppOptions BuildOptions(AppDefinition def) => new()
+    private static AppOptions BuildOptions(AppDefinition def) => new()
     {
         DefaultInstancePath   = def.DefaultInstancePath,
         DefaultInstanceName   = "Default",

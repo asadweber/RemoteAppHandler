@@ -11,7 +11,7 @@ namespace HandelApp.Agent.Services;
 /// gets its own resolved exe path and working directory while sharing app-level settings
 /// such as <see cref="Arguments"/> and <see cref="ShutdownGracePeriodMs"/>.
 /// </remarks>
-public sealed class ConsoleAppOptions
+public sealed class AppOptions
 {
     /// <summary>
     /// Full path to the executable that <see cref="ProcessManagerService"/> will launch.

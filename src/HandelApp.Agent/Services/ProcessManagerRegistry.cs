@@ -19,10 +19,10 @@ namespace HandelApp.Agent.Services;
 /// </para>
 /// </remarks>
 public sealed class ProcessManagerRegistry(
-    IOptions<ConsoleAppOptions> options,
+    IOptions<AppOptions> options,
     ILoggerFactory loggerFactory)
 {
-    private readonly ConsoleAppOptions _opts = options.Value;
+    private readonly AppOptions _opts = options.Value;
 
     /// <summary>
     /// Cached managers keyed by instance name (case-insensitive).
@@ -35,7 +35,7 @@ public sealed class ProcessManagerRegistry(
     /// creating and caching a new one if it does not yet exist.
     /// </summary>
     /// <param name="instanceName">
-    /// Either <see cref="ConsoleAppOptions.DefaultInstanceName"/> (e.g. "Default") or
+    /// Either <see cref="AppOptions.DefaultInstanceName"/> (e.g. "Default") or
     /// a numbered name matching the pattern <c>{InstanceNamePrefix}-\d+</c>.
     /// </param>
     /// <returns>The cached or newly created manager for the instance.</returns>
@@ -78,7 +78,7 @@ public sealed class ProcessManagerRegistry(
 
             // Build per-instance options — working directory and exe path are instance-specific,
             // while arguments and grace period are shared from the app-level configuration.
-            var instanceOpts = new ConsoleAppOptions
+            var instanceOpts = new AppOptions
             {
                 ExecutablePath        = exePath,
                 WorkingDirectory      = instancePath,
@@ -87,7 +87,7 @@ public sealed class ProcessManagerRegistry(
             };
 
             var manager = new ProcessManagerService(
-                new OptionsWrapper<ConsoleAppOptions>(instanceOpts),
+                new OptionsWrapper<AppOptions>(instanceOpts),
                 loggerFactory.CreateLogger<ProcessManagerService>(),
                 instanceName);
 
