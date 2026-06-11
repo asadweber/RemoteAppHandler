@@ -292,15 +292,6 @@ dotnet publish src/HandelApp.Web -c Release -o publish/web
 
 The agent does not perform its own authentication — restrict `AllowedClientIps` to trusted web server IPs in production.
 
----
-
-## Contributing
-
-1. Fork the repository and create a feature branch from `master`.
-2. Keep changes focused - one concern per pull request.
-3. Ensure the solution builds without warnings: `dotnet build HandelApp.slnx`.
-4. Update `appsettings.json` documentation if you add new configuration keys.
-5. Open a pull request with a clear description of the change and its motivation.
 
 ---
 
