@@ -16,7 +16,7 @@ HandelAppAgent bridges a Windows-hosted agent service and a browser-based contro
 
 ![Communication Diagram](Doc/Communication.png)
 
-```
+```text
  Browser
     |  HTTP/HTTPS (Windows Auth)
     v
@@ -37,6 +37,29 @@ HandelAppAgent bridges a Windows-hosted agent service and a browser-based contro
 ```
 
 **Wire protocol:** 4-byte big-endian length header + UTF-8 JSON body. Max message size: 64 KB.
+
+---
+
+## Project Structure
+
+```text
+HandelAppAgent/
+|-- HandelApp.slnx                  # Solution file
+|-- README.md                       # This file
++-- src/
+    |-- HandelApp.Agent/            # Windows Service - agent process
+    |   |-- Services/               # TcpCommandListener, ProcessManagerService, etc.
+    |   |-- appsettings.json        # Agent configuration
+    |   +-- apps.json               # Persisted app registry (runtime-generated)
+    |-- HandelApp.Web/              # ASP.NET Core MVC dashboard
+    |   |-- Controllers/            # AppsController, ConsoleAppController
+    |   |-- Services/               # RemoteAgentService, AgentConnectionMonitor
+    |   |-- Authorization/          # AdGroupHandler, AdGroupRequirement
+    |   |-- Views/                  # Razor views (Apps, ConsoleApp, Home)
+    |   +-- appsettings.json        # Web configuration
+    +-- HandelApp.Shared/           # Shared between Agent and Web
+        +-- Protocol/               # AgentCommand, AgentResponse, ProtocolSerializer, CommandType
+```
 
 ---
 
@@ -208,42 +231,6 @@ dotnet publish src/HandelApp.Web -c Release -o publish/web
 
 ---
 
-## Security
-
-| Layer | Mechanism |
-|-------|-----------|
-| Web authentication | Windows Authentication (Negotiate - NTLM/Kerberos) |
-| Web authorization | Active Directory group membership (`AllowedGroups`, `ReadOnlyGroups`) |
-| Agent network access | IP allowlist (`Agent:AllowedClientIps`); empty = allow all |
-| Path traversal | Instance folder paths validated against `InstancesRootPath` |
-
-The agent does not perform its own authentication — restrict `AllowedClientIps` to trusted web server IPs in production.
-
----
-
-## Project Structure
-
-```
-HandelAppAgent/
-|-- HandelApp.slnx                  # Solution file
-|-- README.md                       # This file
-+-- src/
-    |-- HandelApp.Agent/            # Windows Service - agent process
-    |   |-- Services/               # TcpCommandListener, ProcessManagerService, etc.
-    |   |-- appsettings.json        # Agent configuration
-    |   +-- apps.json               # Persisted app registry (runtime-generated)
-    |-- HandelApp.Web/              # ASP.NET Core MVC dashboard
-    |   |-- Controllers/            # AppsController, ConsoleAppController
-    |   |-- Services/               # RemoteAgentService, AgentConnectionMonitor
-    |   |-- Authorization/          # AdGroupHandler, AdGroupRequirement
-    |   |-- Views/                  # Razor views (Apps, ConsoleApp, Home)
-    |   +-- appsettings.json        # Web configuration
-    +-- HandelApp.Shared/           # Shared between Agent and Web
-        +-- Protocol/               # AgentCommand, AgentResponse, ProtocolSerializer, CommandType
-```
-
----
-
 ## Design Patterns
 
 ### Creational
@@ -290,14 +277,20 @@ HandelAppAgent/
 | **Double-Checked Locking** | `RemoteAgentService.cs` | Reads `volatile _isConnected` without acquiring semaphore; re-checks inside lock before connecting |
 | **Fire-and-Forget** | `TcpCommandListener.cs` | `_ = HandleClientAsync(client, ct)` dispatches each client connection to a separate task |
 
-### Security
+---
 
-| Pattern | Location | Description |
-|---------|----------|-------------|
-| **Path Traversal Prevention** | `InstanceManagerService.cs` | `IsContained()` validates all instance paths stay within `InstancesRootPath` |
-| **Input Validation (Regex Allowlist)** | `AppRegistryService.cs`, `ProcessManagerRegistry.cs` | Strict regex rejects IDs and instance names containing path traversal sequences |
-| **IP Allowlist** | `TcpCommandListener.cs` | Rejects TCP connections from IPs not in `Agent:AllowedClientIps` |
-| **CSRF Protection** | `ConsoleAppController.cs`, `AppsController.cs` | `[ValidateAntiForgeryToken]` on all mutating actions |
+## Security
+
+| Layer | Mechanism |
+|-------|-----------|
+| Web authentication | Windows Authentication (Negotiate - NTLM/Kerberos) |
+| Web authorization | Active Directory group membership (`AllowedGroups`, `ReadOnlyGroups`) |
+| Agent network access | IP allowlist (`Agent:AllowedClientIps`); empty = allow all |
+| Path traversal | Instance folder paths validated against `InstancesRootPath` |
+| Input validation | Regex allowlist on app IDs and instance names |
+| CSRF protection | `[ValidateAntiForgeryToken]` on all mutating controller actions |
+
+The agent does not perform its own authentication — restrict `AllowedClientIps` to trusted web server IPs in production.
 
 ---
 
