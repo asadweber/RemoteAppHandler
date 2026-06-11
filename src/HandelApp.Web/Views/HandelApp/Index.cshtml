@@ -12,7 +12,9 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <a href="/Apps" class="text-decoration-none text-muted small">&larr; All Apps</a>
+            <a href="/Apps" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> All Apps
+            </a>
             <h2 class="mb-0">@appId — Instances</h2>
         </div>
         <span id="agent-badge" class="badge @(Model.IsConnectedToAgent ? "bg-success" : "bg-danger") fs-6">
@@ -29,7 +31,7 @@
     @if (User.IsInRole("Admin"))
     {
 
-        <div class="mb-3">
+        <div class="mb-3 d-flex">
             <form asp-action="Create" asp-route-appId="@appId" method="post" data-action-label="Creating new instance…">
                 @Html.AntiForgeryToken()
                 <button id="btn-create" type="submit" class="btn btn-primary"
