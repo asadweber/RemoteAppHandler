@@ -15,4 +15,8 @@
     <ProjectReference Include="..\HandelApp.Shared\HandelApp.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\img\" />
+  </ItemGroup>
+
 </Project>
