@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\HandelConsoleApp.Shared\HandelApp.Shared.csproj" />
+    <ProjectReference Include="..\HandelApp.Shared\HandelApp.Shared.csproj" />
   </ItemGroup>
 
 </Project>
