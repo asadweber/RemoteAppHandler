@@ -26,6 +26,10 @@
                                     <strong>@User.Identity.Name</strong>
                                 </span>
                             </li>
+                            <li class="nav-item me-1">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-controller="Account" asp-action="ChangePassword">Change Password</a>
+                            </li>
                             <li class="nav-item">
                                 <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline">
                                     @Html.AntiForgeryToken()
