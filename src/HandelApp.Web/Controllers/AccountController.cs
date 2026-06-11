@@ -34,6 +34,7 @@ public class AccountController(IConfiguration configuration, IWebHostEnvironment
             string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
 
         var valid = user is not null &&
+            user.IsActive &&
             _hasher.VerifyHashedPassword(user.Username, user.PasswordHash, password)
                 != PasswordVerificationResult.Failed;
 
@@ -144,5 +145,5 @@ public class AccountController(IConfiguration configuration, IWebHostEnvironment
         ((IConfigurationRoot)configuration).Reload();
     }
 
-    private sealed record AuthUser(string Username, string PasswordHash, string Role);
+    internal sealed record AuthUser(string Username, string PasswordHash, string Role, bool IsActive = true);
 }

@@ -1,0 +1,85 @@
+@model HandelApp.Web.Models.UserListViewModel
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">User Management</h4>
+    <a asp-controller="UserManagement" asp-action="Add" class="btn btn-dark btn-sm">+ Add User</a>
+</div>
+
+@if (Model.ResultMessage is not null)
+{
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success") alert-dismissible fade show py-2">
+        @Model.ResultMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model.Users)
+                {
+                    <tr class="@(!user.IsActive ? "table-secondary text-muted" : "")">
+                        <td class="align-middle fw-semibold">@user.Username</td>
+                        <td class="align-middle">
+                            <span class="badge @(user.Role == "Admin" ? "bg-dark" : "bg-secondary")">
+                                @user.Role
+                            </span>
+                        </td>
+                        <td class="align-middle">
+                            @if (user.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Inactive</span>
+                            }
+                        </td>
+                        <td class="align-middle text-end">
+                            @if (user.IsActive)
+                            {
+                                <form method="post" asp-action="SetActive" asp-controller="UserManagement"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Deactivate @user.Username?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="username" value="@user.Username" />
+                                    <input type="hidden" name="active" value="false" />
+                                    <button class="btn btn-sm btn-outline-warning">Deactivate</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-action="SetActive" asp-controller="UserManagement"
+                                      class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="username" value="@user.Username" />
+                                    <input type="hidden" name="active" value="true" />
+                                    <button class="btn btn-sm btn-outline-success">Activate</button>
+                                </form>
+                            }
+                            <form method="post" asp-action="Delete" asp-controller="UserManagement"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Permanently delete @user.Username? This cannot be undone.')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="username" value="@user.Username" />
+                                <button class="btn btn-sm btn-outline-danger ms-1">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
