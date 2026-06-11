@@ -1,8 +1,8 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/HandelConsoleApp.Agent/HandelApp.Agent.csproj" />
-    <Project Path="src/HandelConsoleApp.Shared/HandelApp.Shared.csproj" />
-    <Project Path="src/HandelConsoleApp.Web/HandelApp.Web.csproj" />
+    <Project Path="src/HandelApp.Agent/HandelApp.Agent.csproj" />
+    <Project Path="src/HandelApp.Shared/HandelApp.Shared.csproj" />
+    <Project Path="src/HandelApp.Web/HandelApp.Web.csproj" />
   </Folder>
   <Project Path="HandelApp/HandelApp.csproj" Id="5176dcf6-6889-4593-b41d-0daba4b5e492" />
 </Solution>
