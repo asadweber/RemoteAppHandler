@@ -14,6 +14,8 @@ HandelAppAgent bridges a Windows-hosted agent service and a browser-based contro
 
 ## Architecture
 
+![Communication Diagram](Doc/Communication.png)
+
 ```
  Browser
     |  HTTP/HTTPS (Windows Auth)
