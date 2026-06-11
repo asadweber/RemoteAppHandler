@@ -63,6 +63,54 @@ HandelAppAgent/
 
 ---
 
+## Design Patterns
+
+### Creational
+
+| Pattern | Location | Description |
+|---------|----------|-------------|
+| **Singleton** | `Program.cs` | `AppRegistryService`, `MultiAppManagerService` registered as single instances via `AddSingleton<T>()` |
+| **Factory** | `ProcessManagerRegistry.cs` | `GetOrCreate()` lazily creates and caches one `ProcessManagerService` per instance name |
+| **Builder** | `MultiAppManagerService.cs` | `BuildOptions()` constructs `ConsoleAppOptions` from an `AppDefinition` |
+
+### Structural
+
+| Pattern | Location | Description |
+|---------|----------|-------------|
+| **Facade** | `MultiAppManagerService.cs` | Single entry point over `AppRegistryService`, `ProcessManagerRegistry`, and `InstanceManagerService` |
+| **Adapter** | `RemoteAgentService.cs` / `IRemoteAgentService.cs` | Adapts raw TCP stream + binary protocol to a typed `SendCommandAsync()` interface |
+| **Proxy** | `RemoteAgentService.cs` | Controls access to the remote agent: manages connection state and transparent reconnection |
+| **Decorator** | `ProcessManagerService.cs` | Wraps `System.Diagnostics.Process` with auto-reattach, graceful shutdown, and duplicate-process deduplication |
+
+### Behavioral
+
+| Pattern | Location | Description |
+|---------|----------|-------------|
+| **Command** | `AgentCommand.cs` + `TcpCommandListener.cs` | Requests encapsulated as `AgentCommand` objects; dispatched via `CommandType` switch |
+| **Observer** | `ProcessManagerService.cs` | Subscribes to `Process.Exited` event to detect unexpected exits |
+| **Template Method** | `TcpCommandListener.cs`, `AgentConnectionMonitor.cs`, `DefaultInstanceStartupService.cs` | All inherit `BackgroundService` and define their loop algorithm in `ExecuteAsync()` |
+
+### Architectural
+
+| Pattern | Location | Description |
+|---------|----------|-------------|
+| **Repository** | `AppRegistryService.cs` | Abstracts persistence of `AppDefinition` objects to `apps.json`; exposes `Register`, `Unregister`, `GetAll` |
+| **Service Layer** | All `*Service.cs` files | Controllers and TCP handlers delegate all business logic to services |
+| **MVC** | `HandelApp.Web` project | Controllers (`AppsController`, `ConsoleAppController`), view models, and Razor views |
+| **Options Pattern** | `AgentOptions.cs`, `ConsoleAppOptions.cs`, `RemoteAgentOptions.cs` | Strongly-typed configuration bound from `appsettings.json` via `IOptions<T>` |
+
+### Concurrency
+
+| Pattern | Location | Description |
+|---------|----------|-------------|
+| **Monitor (Lock)** | `ProcessManagerService.cs`, `MultiAppManagerService.cs`, `ProcessManagerRegistry.cs` | `object _lock` + `lock` statement guards shared mutable state |
+| **Semaphore** | `RemoteAgentService.cs` | `SemaphoreSlim(1,1)` serializes send/receive on the single TCP stream |
+| **Reader-Writer Lock** | `AppRegistryService.cs` | `ReaderWriterLockSlim` allows concurrent reads; exclusive writes |
+| **Double-Checked Locking** | `RemoteAgentService.cs` | Reads `volatile _isConnected` without acquiring semaphore; re-checks inside lock before connecting |
+| **Fire-and-Forget** | `TcpCommandListener.cs` | `_ = HandleClientAsync(client, ct)` dispatches each client connection to a separate task |
+
+---
+
 ## Prerequisites
 
 - Windows Server 2016+ or Windows 10/11
@@ -228,54 +276,6 @@ sc.exe delete "HandelApp Agent"
 dotnet publish src/HandelApp.Web -c Release -o publish/web
 # Deploy publish/web to IIS or any ASP.NET Core-compatible host
 ```
-
----
-
-## Design Patterns
-
-### Creational
-
-| Pattern | Location | Description |
-|---------|----------|-------------|
-| **Singleton** | `Program.cs` | `AppRegistryService`, `MultiAppManagerService` registered as single instances via `AddSingleton<T>()` |
-| **Factory** | `ProcessManagerRegistry.cs` | `GetOrCreate()` lazily creates and caches one `ProcessManagerService` per instance name |
-| **Builder** | `MultiAppManagerService.cs` | `BuildOptions()` constructs `ConsoleAppOptions` from an `AppDefinition` |
-
-### Structural
-
-| Pattern | Location | Description |
-|---------|----------|-------------|
-| **Facade** | `MultiAppManagerService.cs` | Single entry point over `AppRegistryService`, `ProcessManagerRegistry`, and `InstanceManagerService` |
-| **Adapter** | `RemoteAgentService.cs` / `IRemoteAgentService.cs` | Adapts raw TCP stream + binary protocol to a typed `SendCommandAsync()` interface |
-| **Proxy** | `RemoteAgentService.cs` | Controls access to the remote agent: manages connection state and transparent reconnection |
-| **Decorator** | `ProcessManagerService.cs` | Wraps `System.Diagnostics.Process` with auto-reattach, graceful shutdown, and duplicate-process deduplication |
-
-### Behavioral
-
-| Pattern | Location | Description |
-|---------|----------|-------------|
-| **Command** | `AgentCommand.cs` + `TcpCommandListener.cs` | Requests encapsulated as `AgentCommand` objects; dispatched via `CommandType` switch |
-| **Observer** | `ProcessManagerService.cs` | Subscribes to `Process.Exited` event to detect unexpected exits |
-| **Template Method** | `TcpCommandListener.cs`, `AgentConnectionMonitor.cs`, `DefaultInstanceStartupService.cs` | All inherit `BackgroundService` and define their loop algorithm in `ExecuteAsync()` |
-
-### Architectural
-
-| Pattern | Location | Description |
-|---------|----------|-------------|
-| **Repository** | `AppRegistryService.cs` | Abstracts persistence of `AppDefinition` objects to `apps.json`; exposes `Register`, `Unregister`, `GetAll` |
-| **Service Layer** | All `*Service.cs` files | Controllers and TCP handlers delegate all business logic to services |
-| **MVC** | `HandelApp.Web` project | Controllers (`AppsController`, `ConsoleAppController`), view models, and Razor views |
-| **Options Pattern** | `AgentOptions.cs`, `ConsoleAppOptions.cs`, `RemoteAgentOptions.cs` | Strongly-typed configuration bound from `appsettings.json` via `IOptions<T>` |
-
-### Concurrency
-
-| Pattern | Location | Description |
-|---------|----------|-------------|
-| **Monitor (Lock)** | `ProcessManagerService.cs`, `MultiAppManagerService.cs`, `ProcessManagerRegistry.cs` | `object _lock` + `lock` statement guards shared mutable state |
-| **Semaphore** | `RemoteAgentService.cs` | `SemaphoreSlim(1,1)` serializes send/receive on the single TCP stream |
-| **Reader-Writer Lock** | `AppRegistryService.cs` | `ReaderWriterLockSlim` allows concurrent reads; exclusive writes |
-| **Double-Checked Locking** | `RemoteAgentService.cs` | Reads `volatile _isConnected` without acquiring semaphore; re-checks inside lock before connecting |
-| **Fire-and-Forget** | `TcpCommandListener.cs` | `_ = HandleClientAsync(client, ct)` dispatches each client connection to a separate task |
 
 ---
 
