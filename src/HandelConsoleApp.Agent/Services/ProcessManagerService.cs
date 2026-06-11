@@ -163,20 +163,25 @@ public sealed class ProcessManagerService(
         {
             AttachExistingUnderLock();
             KillDuplicatesUnderLock();
+
+            bool running = _managedProcess is not null && !HasExitedSafe(_managedProcess);
+            int? pid     = running ? _managedProcess!.Id : null;
+            return new AgentResponse
+            {
+                Status    = ResponseStatus.Ok,
+                IsRunning = running,
+                ProcessId = pid,
+                Message   = running ? $"Running (PID {pid})" : "Not running"
+            };
         }
-        return new AgentResponse
-        {
-            Status    = ResponseStatus.Ok,
-            IsRunning = IsRunning,
-            ProcessId = ProcessId,
-            Message   = IsRunning ? $"Running (PID {ProcessId})" : "Not running"
-        };
     }
 
     // Called on CLR threadpool thread when OS signals process exit.
     private void OnProcessExited(object? sender, EventArgs e)
     {
-        int exitCode = _managedProcess?.ExitCode ?? -1;
+        int exitCode;
+        try { exitCode = _managedProcess?.ExitCode ?? -1; }
+        catch (InvalidOperationException) { exitCode = -1; }
 
         bool wasIntentional;
         lock (_lock) { wasIntentional = _intentionalStop; }

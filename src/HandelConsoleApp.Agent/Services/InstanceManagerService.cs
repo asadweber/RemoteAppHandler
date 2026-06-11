@@ -83,17 +83,30 @@ public sealed class InstanceManagerService(
         // Default instance first (if folder exists)
         if (!string.IsNullOrEmpty(_opts.DefaultInstancePath) && Directory.Exists(_opts.DefaultInstancePath))
         {
-            // GetOrCreate + GetStatus triggers TryAttachExisting so externally-started processes are detected
-            var defMgr = registry.GetOrCreate(_opts.DefaultInstanceName);
-            var defStatus = defMgr.GetStatus();
-            instances.Add(new InstanceInfo
+            try
             {
-                InstanceName = _opts.DefaultInstanceName,
-                FolderPath   = _opts.DefaultInstancePath,
-                IsRunning    = defStatus.IsRunning,
-                ProcessId    = defStatus.ProcessId,
-                IsDefault    = true
-            });
+                var defMgr    = registry.GetOrCreate(_opts.DefaultInstanceName);
+                var defStatus = defMgr.GetStatus();
+                instances.Add(new InstanceInfo
+                {
+                    InstanceName = _opts.DefaultInstanceName,
+                    FolderPath   = _opts.DefaultInstancePath,
+                    IsRunning    = defStatus.IsRunning,
+                    ProcessId    = defStatus.ProcessId,
+                    IsDefault    = true
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not get status for default instance '{Name}'", _opts.DefaultInstanceName);
+                instances.Add(new InstanceInfo
+                {
+                    InstanceName = _opts.DefaultInstanceName,
+                    FolderPath   = _opts.DefaultInstancePath,
+                    IsRunning    = false,
+                    IsDefault    = true
+                });
+            }
         }
 
         // Numbered instances
@@ -105,17 +118,30 @@ public sealed class InstanceManagerService(
             foreach (var folder in folders.OrderBy(f => f))
             {
                 var name = Path.GetFileName(folder);
-                // GetOrCreate ensures a manager exists and attaches to any externally-started process
-                var mgr = registry.GetOrCreate(name);
-                var status = mgr.GetStatus();
-                instances.Add(new InstanceInfo
+                try
                 {
-                    InstanceName = name,
-                    FolderPath   = folder,
-                    IsRunning    = status.IsRunning,
-                    ProcessId    = status.ProcessId,
-                    IsDefault    = false
-                });
+                    var mgr    = registry.GetOrCreate(name);
+                    var status = mgr.GetStatus();
+                    instances.Add(new InstanceInfo
+                    {
+                        InstanceName = name,
+                        FolderPath   = folder,
+                        IsRunning    = status.IsRunning,
+                        ProcessId    = status.ProcessId,
+                        IsDefault    = false
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Could not get status for instance '{Name}'", name);
+                    instances.Add(new InstanceInfo
+                    {
+                        InstanceName = name,
+                        FolderPath   = folder,
+                        IsRunning    = false,
+                        IsDefault    = false
+                    });
+                }
             }
         }
 

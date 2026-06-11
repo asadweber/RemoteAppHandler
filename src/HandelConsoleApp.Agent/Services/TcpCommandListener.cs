@@ -110,9 +110,9 @@ public sealed class TcpCommandListener(
                             }
                         };
                     }
-                    catch (ArgumentException ex)
+                    catch (Exception ex)
                     {
-                        logger.LogWarning("Rejected command {Cmd} from {Remote}: {Msg}",
+                        logger.LogWarning(ex, "Command {Cmd} from {Remote} faulted: {Msg}",
                             command.Command, remoteEp, ex.Message);
                         response = new AgentResponse { Status = ResponseStatus.Error, Message = ex.Message };
                     }
