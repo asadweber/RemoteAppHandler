@@ -13,10 +13,7 @@
           integrity="sha384-/o6I2CkkWC//PSjvWC/eYN7l3xM3tJm8ZzVkCOfp//W05QcE3mlGskpoHB6XqI+B"
           crossorigin="anonymous" />
     <!-- AdminLTE -->
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-rc2/dist/css/adminlte.min.css"
-          integrity="sha384-vsZBibhTeAgJhcd1ZGvVCsdvvJjTIjbXAE6rAwGxwnw6XMpYRn8lVsgykleFXw6W"
-          crossorigin="anonymous" />
+    <link href="~/lib/admin-lte/css/adminlte.css" rel="stylesheet" />
     <!-- Custom overrides -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
@@ -36,11 +33,11 @@
                     </li>
                 </ul>
                 <!-- Brand -->
-                <a class="navbar-brand ms-2 me-auto" asp-controller="Apps" asp-action="Index">
+                <a class="navbar-brand ms-2" asp-controller="Apps" asp-action="Index">
                     <span class="brand-text fw-semibold">Handel App Agent</span>
                 </a>
                 <!-- Right nav -->
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav float-end">
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <li class="nav-item dropdown">
@@ -132,9 +129,7 @@
     <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-rc2/dist/js/adminlte.min.js"
-            integrity="sha384-V9eflW/hOJV8DjakZRfwuwOffUuppgOE1R7jdDBVkeNl1CxZwiQPENh7VYzbvesN"
-            crossorigin="anonymous"></script>
+     <script src="~/lib/admin-lte/js/adminlte.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
