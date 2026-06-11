@@ -1,17 +1,9 @@
 [
   {
-    "AppId": "PushNotification-app",
+    "AppId": "app1",
     "DisplayName": "Push Notification App",
     "DefaultInstancePath": "C:\\Apps\\Default",
     "InstancesRootPath": "C:\\Apps",
-    "ExecutableName": "HandelApp.exe",
-    "InstanceNamePrefix": "Instance"
-  },
-  {
-    "AppId": "FileProcessing-app",
-    "DisplayName": "File Processing App",
-    "DefaultInstancePath": "C:\\Apps1\\Default",
-    "InstancesRootPath": "C:\\Apps1",
     "ExecutableName": "HandelApp.exe",
     "InstanceNamePrefix": "Instance"
   }
