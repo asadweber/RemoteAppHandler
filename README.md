@@ -10,6 +10,18 @@ A distributed application management system for operations teams to register, st
 
 HandelAppAgent bridges a Windows-hosted agent service and a browser-based control panel. The agent runs as a Windows Service, maintains a registry of deployed console applications, and manages their process lifecycles. The web dashboard connects to the agent over a persistent TCP connection using a custom length-prefixed JSON protocol, enabling operators to create and control numbered application instances without direct server access.
 
+### Why This App Exists
+
+Enterprise console applications often need to run as multiple parallel instances — each isolated with its own configuration, data folder, and process — to handle increased load or serve different tenants. The traditional approach is to spin up additional Virtual Machines or containers, which adds infrastructure cost, OS licensing, provisioning time, and operational overhead.
+
+HandelAppAgent eliminates that overhead by treating each application instance as a **folder + process pair on a single Windows host**:
+
+- A new instance is created by cloning the `DefaultInstancePath` folder into a numbered directory (e.g., `Instance-2`, `Instance-3`) — no new VM, no new OS, no container runtime required.
+- Each instance runs as an independent OS process with its own working directory, so instances are fully isolated at the filesystem level.
+- The agent starts, stops, and monitors every process on the same machine, keeping resource usage proportional to actual load rather than reserved VM capacity.
+
+**Result:** scaling from 1 to N instances is a folder copy + process launch. Operations that would take minutes with a VM (provision → install → configure → start) complete in under a second.
+
 ---
 
 ## Architecture
