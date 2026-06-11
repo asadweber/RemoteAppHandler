@@ -1,6 +1,7 @@
 using HandelApp.Shared.Protocol;
 using HandelApp.Web.Models;
 using HandelApp.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HandelApp.Web.Controllers;
@@ -15,6 +16,7 @@ namespace HandelApp.Web.Controllers;
 /// Like <see cref="HandelAppController"/>, all agent calls go through
 /// <see cref="SendSafeAsync"/> so the list view still renders when the agent is offline.
 /// </remarks>
+[Authorize]
 public sealed class AppsController(
     IRemoteAgentService agentService,
     ILogger<AppsController> logger) : Controller
