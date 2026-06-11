@@ -4,64 +4,137 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Handel App Agent</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+          integrity="sha384-/o6I2CkkWC//PSjvWC/eYN7l3xM3tJm8ZzVkCOfp//W05QcE3mlGskpoHB6XqI+B"
+          crossorigin="anonymous" />
+    <!-- AdminLTE -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-rc2/dist/css/adminlte.min.css"
+          integrity="sha384-vsZBibhTeAgJhcd1ZGvVCsdvvJjTIjbXAE6rAwGxwnw6XMpYRn8lVsgykleFXw6W"
+          crossorigin="anonymous" />
+    <!-- Custom overrides -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/HandelConsoleApp.Web.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+
+    <div class="app-wrapper">
+
+        <!-- Navbar -->
+        <nav class="app-header navbar navbar-expand bg-body">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Apps" asp-action="Index">Handel App Agent</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav ms-auto align-items-center">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            @if (User.IsInRole("Admin"))
-                            {
-                                <li class="nav-item me-1">
-                                    <a class="btn btn-sm btn-outline-dark"
-                                       asp-controller="UserManagement" asp-action="Index">Users</a>
+                <!-- Sidebar toggle -->
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button">
+                            <i class="fa fa-bars"></i>
+                        </a>
+                    </li>
+                </ul>
+                <!-- Brand -->
+                <a class="navbar-brand ms-2 me-auto" asp-controller="Apps" asp-action="Index">
+                    <span class="brand-text fw-semibold">Handel App Agent</span>
+                </a>
+                <!-- Right nav -->
+                <ul class="navbar-nav ms-auto">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                <i class="fa fa-user-circle me-1"></i>
+                                <span class="d-none d-sm-inline">@User.Identity.Name</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                                        <i class="fa fa-key me-2"></i>Change Password
+                                    </a>
                                 </li>
-                            }
-                            <li class="nav-item me-2">
-                                <span class="navbar-text text-muted small">
-                                    <strong>@User.Identity.Name</strong>
-                                </span>
-                            </li>
-                            <li class="nav-item me-1">
-                                <a class="btn btn-sm btn-outline-secondary"
-                                   asp-controller="Account" asp-action="ChangePassword">Change Password</a>
-                            </li>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">
+                                            <i class="fa fa-users me-2"></i>User Management
+                                        </a>
+                                    </li>
+                                }
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline w-100">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fa fa-sign-out-alt me-2"></i>Sign Out
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Sidebar -->
+        <aside class="app-sidebar bg-dark shadow" data-bs-theme="dark">
+            <div class="sidebar-brand">
+                <a asp-controller="Apps" asp-action="Index" class="brand-link text-decoration-none text-white d-flex align-items-center px-3 py-3">
+                    <i class="fa fa-server me-2 opacity-75"></i>
+                    <span class="brand-text fw-semibold">Handel Agent</span>
+                </a>
+            </div>
+
+            <div class="sidebar-wrapper">
+                <nav class="mt-2">
+                    <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu">
+                        <li class="nav-item">
+                            <a asp-controller="Apps" asp-action="Index"
+                               class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Apps" ? "active" : "")">
+                                <i class="nav-icon fa fa-th-list"></i>
+                                <p>Apps</p>
+                            </a>
+                        </li>
+                        @if (User.IsInRole("Admin"))
+                        {
                             <li class="nav-item">
-                                <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Sign Out</button>
-                                </form>
+                                <a asp-controller="UserManagement" asp-action="Index"
+                                   class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "UserManagement" ? "active" : "")">
+                                    <i class="nav-icon fa fa-users"></i>
+                                    <p>Users</p>
+                                </a>
                             </li>
                         }
                     </ul>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main content wrapper -->
+        <main class="app-main">
+            <div class="app-content">
+                <div class="container-fluid">
+                    @RenderBody()
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
         </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - Handel App
-        </div>
-    </footer>
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="float-end d-none d-sm-inline">Handel App Agent</div>
+            <strong>&copy; 2026 Handel App</strong>
+        </footer>
+
+    </div><!-- /.app-wrapper -->
+
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@4.0.0-rc2/dist/js/adminlte.min.js"
+            integrity="sha384-V9eflW/hOJV8DjakZRfwuwOffUuppgOE1R7jdDBVkeNl1CxZwiQPENh7VYzbvesN"
+            crossorigin="anonymous"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
